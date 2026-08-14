@@ -55,6 +55,6 @@ export const APP_REGISTRY: readonly AppDescriptor[] = [
     permission: 'flags.read',
     rolesLabel: 'engineer, viewer',
     countBadge: async (actor) => `${await countFlags(actor)} flags`,
-    available: false,
+    available: true,
   },
 ];
