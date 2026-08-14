@@ -101,7 +101,7 @@ Spec 00 ships the platform and the hub. The three apps ship in specs 01–03; th
 ```ts
 type Role = 'viewer' | 'kyc_analyst' | 'kyc_manager' | 'support_agent'
           | 'finance_manager' | 'engineer' | 'admin';
-type Permission = string; // e.g. 'kyc.claim', 'refunds.approve', 'flags.write', 'audit.read'
+type Permission = (typeof PERMISSIONS)[number];   // union of literals: 'kyc.claim', 'refunds.approve', …
 
 resolveRoles(groups: string[], map: GroupRoleMap): Role[]   // unknown groups ignored, deduped
 permissionsFor(roles: Role[]): Set<Permission>              // admin = union of all
@@ -119,45 +119,72 @@ enforcePermission(actor, permission): void
 `lib/audit` — the only sanctioned write path.
 
 ```ts
-audited<T>(opts: {
+audited<T>(options: {
   actor: Actor;
   action: string;                     // 'kyc.case.approve'
   entityType: string; entityId: string;
-  before?: unknown;                   // captured by caller-supplied snapshot fn
+  before?: unknown;                   // the entity the caller read before the mutation
+  after?: (result: T) => unknown;     // defaults to the value the mutation returned
 }, fn: (tx: Tx) => Promise<T>): Promise<T>
-readAuditLog(actor, filter): Promise<AuditEntry[]>   // admin-only, filterable
+readAuditLog(actor, filter): Promise<AuditEntry[]>         // admin-only, filterable
+readAuditLogPage(actor, filter): Promise<AuditLogPage>     // entries + unpaged total
 ```
 
-- Opens (or joins) a Drizzle transaction, runs `fn`, then inserts the audit row inside the same transaction; a thrown error rolls both back.
+- Opens a Drizzle transaction, runs `fn` with the mutation surface (`Tx`), then inserts the audit row inside the same transaction; a thrown error rolls both back.
 - `actor_roles_snapshot` comes from the user's persisted snapshot, not from a live re-resolution.
-- `before`/`after` are stored as `jsonb`; `after` is derived from `fn`'s returned entity when it is an entity, otherwise from an explicit snapshot callback.
+- `before`/`after` are stored as `jsonb`. `before` is **caller-supplied** — the entity read before the change, which is also the compare-and-swap read the guards ran against; `after` is derived from what the mutation returned unless an explicit `after` mapper is given.
+- `fn` receives `Tx`, the per-app mutation surface assembled in `lib/db/mutations`, so a caller cannot reach the raw client from inside the wrapper.
 
 `lib/workflow` — generic guarded state machine.
 
 ```ts
-type Guard<E> = (ctx: { actor: Actor; entity: E; transition: string; context: unknown })
+type Guard<E> = (ctx: { actor: Actor; entity: E; transition: string; context?: unknown })
   => true | { ok: false; reason: string };
 
-defineMachine<E, S extends string>({ states, transitions: Record<`${S}->${S}`, Guard<E>[]> })
-machine.can(ctx): { ok: true } | { ok: false; reason: string }
-machine.transition(ctx): Promise<E>   // runs through audited(); rejects undeclared transitions
+defineMachine<E, S extends string>({
+  entityType: string;                                   // audit entity type, e.g. 'kyc_case'
+  stateOf: (entity: E) => S;
+  transitions: Partial<Record<string, Guard<E>[]>>;      // keyed `from->to`
+  persist: (args: { tx: Tx; entity: E; from: S; to: S; context: unknown }) => Promise<E>;
+  action?: (to: S) => string;                           // defaults to `<entityType>.<to>`
+})
+machine.can(request): { ok: true } | { ok: false; reason: string }
+machine.availableTransitions(request): S[]
+machine.transition(request): Promise<E>   // through audited(); throws TransitionRefusedError
 ```
 
 - Guards are pure and synchronous where possible; cross-entity facts arrive via `context` (e.g. prior approvals), which keeps guards unit-testable without a database.
 - Guard helpers: `hasRole`, `hasPermission`, `not`, `all`, `any`, `distinctActor(field)` (four-eyes), `amountAtMost(n)`.
-- Undeclared transition = `{ ok: false, reason: 'transition_not_allowed' }`; terminal states simply declare no outgoing transitions.
+- Undeclared transition = `{ ok: false, reason: 'transition_not_allowed:<from>-><to>' }`; terminal states simply declare no outgoing transitions.
+- `persist` receives the `from` state the guards were evaluated against and passes it to `compareAndSwapUpdate`, so a row another writer already moved is refused with `StaleStateError` and surfaces as `TransitionRefusedError('stale_state')` — with no audit entry, because the transaction rolled back.
 
-`lib/auth` — Auth.js (NextAuth) config: Entra ID OIDC provider (prod) + credentials provider (dev/demo only, gated on `DEMO_AUTH_ENABLED`), Drizzle adapter, session in Postgres. Sign-in callback resolves groups → roles via `lib/rbac` and persists the snapshot on `users.roles`. Exposes `getActor()` for server components/actions and `requireActor()` which redirects when signed out. MFA step-up: `StepUpProvider` interface + `NoopStepUpProvider`, called at the documented hook point.
+`lib/auth` — Auth.js (NextAuth) with the Drizzle adapter and `session: { strategy: 'database' }`; Entra ID OIDC is the only registered provider, and it is registered only when its three env vars are set. The demo IdP is **not** a provider: `signInAsDemoUser(email, password)` validates a mock account against `users.password_hash`, re-resolves its fake group claims through `resolveRoles`, inserts a `sessions` row and sets the session cookie — so demo and production share one session mechanism. It is gated by `demoAuthEnabled()` (`DEMO_AUTH_ENABLED=true` **and** a locally served app, unless `DEMO_AUTH_ALLOW_REMOTE_HOST=true`) and throttled per client and account. The Entra `signIn` event resolves groups → roles via `lib/rbac` and persists the snapshot on `users.roles`. Exposes `getActor()` for server components/actions and `requireActor()` which redirects when signed out. MFA step-up: `StepUpProvider` interface + `NoopStepUpProvider`, called at the documented hook point.
 
 `lib/providers` — `KycProvider` and `PaymentsProvider` interfaces plus mock implementations that persist/log; a config flag (`PROVIDER_MODE`) selects the implementation. Spec 00 defines the interfaces and mocks only; the apps consume them.
 
 `lib/ui` — `PageShell`, `DataTable`, `Form`, `ApprovalFlow`, `DetailDrawer`, `StatusBadge`. Server components by default; only `Form`, `DetailDrawer` and the `DataTable` control bar are client components. `DataTable` reads sort/filter/page from `searchParams` so state is URL-shareable and server-rendered.
 
-`lib/db` — Drizzle client (serverless-compatible pooling), schema, accessors, seed.
+`lib/db` — postgres.js driver (TCP, real transactions, `max: 1` and no prepared statements so a pooled Neon URL is safe), Drizzle client, and four **per-app slice directories** behind barrels.
+
+### Module layout (per-app slices + registry)
+
+Foundation modules hold no app logic. Each app is a set of slice files plus one registry entry:
+
+```
+lib/db/schema/{foundation,kyc,refunds,flags}.ts      # barrel: index.ts, one export line per app
+lib/db/queries/{foundation,kyc,refunds,flags}.ts     # accessors, actor first; barrel: index.ts
+lib/db/mutations/{core,kyc}.ts                       # core = Tx types + compareAndSwapUpdate
+                                                     # index.ts: `interface Tx extends KycMutations {}`
+lib/db/seed/{foundation,kyc,refunds,flags}.ts        # called from lib/db/seed.ts
+lib/apps/registry.ts                                 # APP_REGISTRY: one AppDescriptor per app
+src/app/(apps)/{kyc,refunds,flags}/page.tsx          # app routes
+```
+
+The nav (`PageShell`) and the hub cards both render from `APP_REGISTRY`, so an app appears by adding its descriptor; `available: false` renders the card without an entry link until the app's spec ships. Adding an app therefore means new slice files plus one registry entry, and no edit to foundation logic.
 
 ### Schema (Drizzle owns it; one migration history)
 
-Tables from technical context §7 — spec 00 creates all of them so specs 01–03 add no migrations for their core entities: `users` (with `roles` snapshot), Auth.js `accounts`/`sessions`/`verification_tokens`, `audit_log`, `kyc_cases`, `kyc_events`, `refunds`, `refund_approvals`, `flags`, `flag_states`. All FKs explicit; every state column is a Postgres enum (`kyc_case_state`, `refund_state`, `role`, `environment`). `audit_log` is append-only by convention plus a revoked-UPDATE/DELETE note in the migration; indexes on `(entity_type, entity_id)`, `actor_id` and `created_at`.
+Tables from technical context §7 — spec 00 creates all of them, in per-app migrations, so specs 01–03 add no migrations for their core entities: `users` (with `roles` snapshot, `groups`, `password_hash`), Auth.js `accounts`/`sessions`/`verification_tokens`, `audit_log` (`drizzle/0000`), `kyc_cases`, `kyc_events` (`0002`), `refunds`, `refund_approvals` (`0003`), `flags`, `flag_states` (`0004`). All FKs explicit; every state column is a Postgres enum (`kyc_case_state`, `refund_state`, `role`, `environment`, `rollout_kind`). `audit_log` is append-only **in the database**: `drizzle/0001_append_only_audit_log.sql` ships a trigger that raises on any `UPDATE` or `DELETE`. Indexes on `(entity_type, entity_id)`, `actor_id` and `created_at`.
 
 ### Access control at two layers
 
@@ -203,4 +230,4 @@ Not unit-tested: UI primitives' rendering, page layout, seed data shape — cove
 
 - Conventions from technical context §9 apply to every later spec and should be captured as knowledge entries: `audited()` for all mutations; no inline role checks; all state changes through `lib/workflow`; zod-validate every external input; server components/actions by default; extend `lib/ui` rather than fork it; one session = one spec = one PR.
 - The audit log doubling as flag change history (spec 03) is the cheapest demonstration that the platform is load-bearing — keep it in the demo script.
-- The demo credentials provider must be disabled in production by config, and the README should say so explicitly.
+- Demo sign-in must be disabled in production by config (and is refused off localhost regardless), and the README should say so explicitly.
