@@ -1,6 +1,5 @@
 import clsx from 'clsx';
 import {
-  approvalStepsFor,
   declaredTargets,
   formatMoney,
   parseActionError,
@@ -10,9 +9,10 @@ import {
 import type { AuditEntry } from '@/lib/audit';
 import type { RefundRow } from '@/lib/db/queries';
 import type { Actor } from '@/lib/rbac';
-import { ApprovalFlow, DetailDrawer, JsonDiff, StatusBadge } from '@/lib/ui';
+import { DetailDrawer, JsonDiff, StatusBadge } from '@/lib/ui';
 import { transitionRefundAction } from './actions';
 import { actionLabel, stateTone } from './presentation';
+import { RefundActionForm } from './RefundActionForm';
 
 export function RefundDrawer({
   actor,
@@ -59,8 +59,18 @@ export function RefundDrawer({
         />
       </Section>
 
-      <Section title="Approvals">
-        <ApprovalFlow steps={approvalStepsFor(refund)} actions={[]} />
+      <Section title="Decision">
+        <Facts
+          rows={[
+            ['Decided by', refund.decidedByEmail ?? '—'],
+            [
+              'Decided at',
+              refund.decidedAt === null
+                ? '—'
+                : refund.decidedAt.toISOString().replace('T', ' ').slice(0, 19),
+            ],
+          ]}
+        />
       </Section>
 
       <Section title="Actions">
@@ -84,21 +94,27 @@ export function RefundDrawer({
                   data-testid={`refund-action-${to}`}
                   className={clsx('rounded border border-line p-3', !decision.ok && 'bg-canvas')}
                 >
-                  {/* One ApprovalFlow per action, so a refusal explains the action it blocked. */}
-                  <ApprovalFlow
-                    steps={[]}
-                    actions={[
-                      {
-                        label: actionLabel(to),
-                        formAction: transitionRefundAction.bind(null, {
-                          refundId: refund.id,
-                          to,
-                          returnTo,
-                        }),
-                        ...(decision.ok ? {} : { refusedReason: copy }),
-                      },
-                    ]}
-                  />
+                  {decision.ok ? (
+                    <RefundActionForm
+                      label={actionLabel(to)}
+                      tone={to === 'approved' ? 'success' : 'danger'}
+                      idPrefix={`refund-${to}`}
+                      action={transitionRefundAction.bind(null, {
+                        refundId: refund.id,
+                        to,
+                        returnTo,
+                      })}
+                    />
+                  ) : (
+                    <button
+                      type="button"
+                      disabled
+                      className="rounded bg-line px-3 py-1.5 text-sm font-medium text-muted disabled:cursor-not-allowed"
+                    >
+                      {actionLabel(to)}
+                    </button>
+                  )}
+                  {/* The refusal renders under the action it blocked, never across the drawer. */}
                   {copy !== undefined ? (
                     <p className="mt-2 text-sm text-red-700" role="alert">
                       {copy}

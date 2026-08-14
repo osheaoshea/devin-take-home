@@ -27,10 +27,7 @@ export const PERMISSIONS = [
   'kyc.escalate',
   'kyc.resolve_escalated',
   'refunds.read',
-  'refunds.create',
-  'refunds.approve_small',
   'refunds.approve',
-  'refunds.co_approve',
   'refunds.reject',
   'flags.read',
   'flags.write',
@@ -56,20 +53,13 @@ const KYC_ANALYST: Permission[] = [
   'kyc.escalate',
 ];
 
-const FINANCE_MANAGER: Permission[] = [
-  'refunds.read',
-  'refunds.create',
-  'refunds.approve_small',
-  'refunds.approve',
-  'refunds.co_approve',
-  'refunds.reject',
-];
+const FINANCE_MANAGER: Permission[] = ['refunds.read', 'refunds.approve', 'refunds.reject'];
 
 const NON_ADMIN_ROLE_PERMISSIONS: Record<Exclude<Role, 'admin'>, Permission[]> = {
   viewer: READ_EVERYWHERE,
   kyc_analyst: KYC_ANALYST,
   kyc_manager: [...KYC_ANALYST, 'kyc.resolve_escalated'],
-  support_agent: ['refunds.read', 'refunds.create', 'refunds.approve_small'],
+  support_agent: ['refunds.read'],
   finance_manager: FINANCE_MANAGER,
   engineer: ['flags.read', 'flags.write', 'flags.kill_switch'],
 };

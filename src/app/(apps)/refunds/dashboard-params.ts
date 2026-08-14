@@ -16,8 +16,6 @@ export const refundParamsSchema = z.object({
   refund: z.string().uuid().optional(),
   /** A guard's refusal reason, passed back untranslated for inline rendering. */
   error: z.string().min(1).max(160).optional(),
-  /** A validation message from the raise form, rendered under that form alone. */
-  raiseError: z.string().min(1).max(160).optional(),
 });
 
 export type RefundParams = z.infer<typeof refundParamsSchema>;

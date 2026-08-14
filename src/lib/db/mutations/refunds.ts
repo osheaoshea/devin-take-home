@@ -1,60 +1,41 @@
-import { refundApprovals, refunds, type Refund } from '../schema';
+import { refunds, type Refund } from '../schema';
 import { compareAndSwapUpdate, type DrizzleTx } from './core';
 
-/**
- * A refund as the raising agent describes it; amounts are minor units with an explicit currency,
- * and the caller mints the id so the audit entry names the refund it created.
- */
-export interface NewRefund {
-  id: string;
-  customerEmail: string;
-  paymentId: string;
-  amountPence: number;
-  currency: string;
-  reasonCode: string;
-  requestedById: string;
-}
-
-export interface ApproveRefundArgs {
+export interface DecideRefundArgs {
   refundId: string;
   /** The state the guards were evaluated against, so the update is a compare-and-swap. */
   from: Refund['state'];
   to: Refund['state'];
-  approverId: string;
+  decidedById: string;
+  /** Taken from `now()` by the caller, so tests and seeds share the app's clock. */
+  decidedAt: Date;
   /** Present only for the transition into `approved`, when the provider issued the refund. */
   providerRefundId?: string;
 }
 
 export interface RefundMutations {
-  createRefund(refund: NewRefund): Promise<Refund>;
   /**
-   * Records this approver's row and moves the refund in one go, so dual approval needs no extra
-   * columns: two rows on a refund are two distinct approvers, enforced by a unique constraint.
+   * Settles a refund: the state change and the deciding actor land in one compare-and-swap, so a
+   * decided refund always names who decided it.
    */
-  approveRefund(args: ApproveRefundArgs): Promise<Refund>;
-  setRefundState(refundId: string, from: Refund['state'], to: Refund['state']): Promise<Refund>;
+  decideRefund(args: DecideRefundArgs): Promise<Refund>;
 }
 
 export function refundMutations(tx: DrizzleTx): RefundMutations {
-  const updateRefund = (
-    refundId: string,
-    from: Refund['state'],
-    values: Partial<Refund>,
-  ): Promise<Refund> => compareAndSwapUpdate(tx, refunds, refundId, from, values, 'refund');
-
   return {
-    createRefund: async (refund) => {
-      const [row] = await tx.insert(refunds).values(refund).returning();
-      if (row === undefined) throw new Error('failed to create refund');
-      return row;
-    },
-    approveRefund: async ({ refundId, from, to, approverId, providerRefundId }) => {
-      await tx.insert(refundApprovals).values({ refundId, approverId });
-      return updateRefund(refundId, from, {
-        state: to,
-        ...(providerRefundId === undefined ? {} : { providerRefundId }),
-      });
-    },
-    setRefundState: (refundId, from, to) => updateRefund(refundId, from, { state: to }),
+    decideRefund: ({ refundId, from, to, decidedById, decidedAt, providerRefundId }) =>
+      compareAndSwapUpdate(
+        tx,
+        refunds,
+        refundId,
+        from,
+        {
+          state: to,
+          decidedById,
+          decidedAt,
+          ...(providerRefundId === undefined ? {} : { providerRefundId }),
+        },
+        'refund',
+      ),
   };
 }

@@ -1,11 +1,6 @@
 import Link from 'next/link';
 import { signOutAction } from '@/app/actions';
-import {
-  formatMoney,
-  penceFromPounds,
-  REFUND_STATES,
-  SINGLE_APPROVAL_LIMIT_PENCE,
-} from '@/lib/apps/refunds';
+import { formatMoney, penceFromPounds, REFUND_STATES } from '@/lib/apps/refunds';
 import { readAuditLog, type AuditEntry } from '@/lib/audit';
 import { requireActor } from '@/lib/auth';
 import {
@@ -18,7 +13,6 @@ import {
 import { can, type Actor } from '@/lib/rbac';
 import { enforcePermission } from '@/lib/rbac/enforce';
 import { DataTable, PageShell, StatusBadge } from '@/lib/ui';
-import { raiseRefundAction } from './actions';
 import {
   approvedSince,
   PAGE_SIZE,
@@ -26,7 +20,6 @@ import {
   singleValueParams,
 } from './dashboard-params';
 import { stateTone } from './presentation';
-import { RaiseRefundForm } from './RaiseRefundForm';
 import { RefundDrawer } from './RefundDrawer';
 
 export default async function RefundsPage({
@@ -62,14 +55,14 @@ export default async function RefundsPage({
     <PageShell
       actor={actor}
       title="Refunds"
-      description={`Raise refunds against mock payments and decide them. Anything above ${formatMoney(SINGLE_APPROVAL_LIMIT_PENCE)} needs two finance managers.`}
+      description="Review the refund requests raised against mock payments and decide each one: approving issues the refund with the payments provider."
       signOutAction={signOutAction}
     >
       <div className="mb-6 grid gap-4 sm:grid-cols-3">
         <Tile
           label="Open requests"
           value={String(totals.openCount)}
-          hint="Requested or waiting on a second approval"
+          hint="Requests still waiting on a decision"
         />
         <Tile
           label="Total exposure"
@@ -83,7 +76,7 @@ export default async function RefundsPage({
         />
       </div>
 
-      <div className="mb-4 flex flex-wrap items-end justify-between gap-3">
+      <div className="mb-4">
         <form className="flex flex-wrap items-end gap-3 rounded border border-line bg-surface p-4">
           <label className="flex flex-col gap-1 text-xs text-muted">
             State
@@ -122,19 +115,6 @@ export default async function RefundsPage({
             Clear
           </Link>
         </form>
-
-        {can(actor, 'refunds.create') ? (
-          <div
-            className="w-full max-w-sm rounded border border-line bg-surface p-4"
-            data-testid="raise-refund"
-          >
-            <h2 className="mb-3 font-medium">Raise a refund</h2>
-            <RaiseRefundForm
-              action={raiseRefundAction.bind(null, hrefOf(query))}
-              error={params.raiseError}
-            />
-          </div>
-        ) : null}
       </div>
 
       <DataTable<RefundRow>
@@ -166,12 +146,9 @@ export default async function RefundsPage({
           },
           { key: 'reason', header: 'Reason', render: (row) => row.reasonCode },
           {
-            key: 'approvals',
-            header: 'Approvals',
-            render: (row) =>
-              row.approvals.length === 0
-                ? '—'
-                : row.approvals.map((approval) => approval.approverEmail).join(', '),
+            key: 'decidedBy',
+            header: 'Decided by',
+            render: (row) => row.decidedByEmail ?? '—',
           },
           {
             key: 'created',

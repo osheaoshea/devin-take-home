@@ -3,12 +3,7 @@
 import { revalidatePath } from 'next/cache';
 import { notFound, redirect } from 'next/navigation';
 import { z } from 'zod';
-import {
-  raiseRefund,
-  raiseRefundFormSchema,
-  refundMachine,
-  REFUND_STATES,
-} from '@/lib/apps/refunds';
+import { refundMachine, REFUND_STATES } from '@/lib/apps/refunds';
 import { requireActor } from '@/lib/auth';
 import { findRefundRowById } from '@/lib/db/queries';
 import { TransitionRefusedError } from '@/lib/workflow';
@@ -56,23 +51,6 @@ export async function transitionRefundAction(rawTarget: RefundTransitionTarget):
   );
 }
 
-/** Raises a refund request, then opens it so the agent can see where the amount routed it. */
-export async function raiseRefundAction(
-  returnTo: string | undefined,
-  formData: FormData,
-): Promise<void> {
-  const actor = await requireActor();
-  const parsed = raiseRefundFormSchema.safeParse(Object.fromEntries(formData));
-  if (!parsed.success) {
-    redirect(dashboardHref(returnTo, { raiseError: parsed.error.issues[0]?.message }));
-  }
-
-  const refund = await raiseRefund(actor, parsed.data);
-
-  revalidatePath('/refunds');
-  redirect(dashboardHref(returnTo, { refund: refund.id }));
-}
-
 /** Rebuilds the dashboard URL the actor came from, keeping their filters and page. */
 function dashboardHref(
   returnTo: string | undefined,
@@ -82,7 +60,6 @@ function dashboardHref(
   const [path = '/refunds', search = ''] = safe.split('?');
   const params = new URLSearchParams(search);
   params.delete('error');
-  params.delete('raiseError');
   for (const [key, value] of Object.entries(overrides)) {
     if (value !== undefined) params.set(key, value);
   }

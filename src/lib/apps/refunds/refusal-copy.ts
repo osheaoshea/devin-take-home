@@ -1,22 +1,13 @@
-import {
-  REFUND_STATES,
-  SINGLE_AGENT_LIMIT_PENCE,
-  SINGLE_APPROVAL_LIMIT_PENCE,
-  type RefundState,
-} from './machine';
-import { formatMoney } from './money';
+import { REFUND_STATES, type RefundState } from './machine';
 
 const COPY: Record<string, string> = {
-  same_approver: 'You gave the first approval, so a second finance manager must complete it.',
-  amount_within_single_approval: `This refund is within one approver’s ${formatMoney(SINGLE_APPROVAL_LIMIT_PENCE)} limit, so approve it outright.`,
-  [`amount_above_${SINGLE_AGENT_LIMIT_PENCE}`]: `Refunds over ${formatMoney(SINGLE_AGENT_LIMIT_PENCE)} need a finance manager.`,
-  [`amount_above_${SINGLE_APPROVAL_LIMIT_PENCE}`]: `Refunds over ${formatMoney(SINGLE_APPROVAL_LIMIT_PENCE)} need two finance managers, so route this one on for a second approval.`,
   stale_state: 'This refund moved on while you had it open. Reopen it to see where it stands.',
 };
 
 /**
- * Guard reasons are machine-facing; approvers get a sentence. `any(...)` reports every branch it
- * refused, joined by `|`, so each part is translated and an unmapped code still passes through.
+ * Guard reasons are machine-facing; the person deciding gets a sentence. Composite guards report
+ * every branch they refused joined by `|`, so each part is translated and an unmapped code still
+ * passes through rather than being silently swallowed.
  */
 export function refusalCopy(reason: string): string {
   const sentences = new Set(reason.split('|').map(copyForPart));
@@ -26,9 +17,10 @@ export function refusalCopy(reason: string): string {
 function copyForPart(reason: string): string {
   const mapped = COPY[reason];
   if (mapped !== undefined) return mapped;
-  if (reason.startsWith('missing_permission:')) return "Your role can't perform this action.";
+  if (reason.startsWith('missing_permission:'))
+    return 'Deciding refunds is the finance managers’ call — your role can read them only.';
   if (reason.startsWith('transition_not_allowed:'))
-    return 'This refund can no longer move to that state.';
+    return 'This refund has already been decided, so it can no longer move.';
   return reason;
 }
 

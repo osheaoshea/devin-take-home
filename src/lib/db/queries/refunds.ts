@@ -1,8 +1,8 @@
-import { and, asc, count, desc, eq, gte, inArray, sql, sum, type SQL } from 'drizzle-orm';
+import { and, asc, count, desc, eq, gte, sql, sum, type SQL } from 'drizzle-orm';
 import { alias } from 'drizzle-orm/pg-core';
 import { requirePermission, type Actor } from '@/lib/rbac';
 import { getDb } from '../client';
-import { refundApprovals, refunds, users, type Refund } from '../schema';
+import { refunds, users, type Refund } from '../schema';
 
 export interface RefundFilter {
   state?: Refund['state'];
@@ -23,31 +23,22 @@ const SORT_COLUMNS = {
   customer: refunds.customerEmail,
 } as const;
 
-/** An approval as the table and the approval flow show it: who, when. */
-export interface RefundApprovalRow {
-  approverId: string;
-  approverEmail: string;
-  approvedAt: Date;
-}
-
-/** A refund plus the people on it and its approvals, oldest first — what the guards also read. */
+/** A refund plus the people on it: who raised it and, once decided, who decided it. */
 export interface RefundRow extends Refund {
   requestedByEmail: string;
-  approvals: RefundApprovalRow[];
+  decidedByEmail: string | null;
 }
 
 /** The three numbers the dashboard leads with. */
 export interface RefundTotals {
   openCount: number;
-  /** Sum, in minor units, of everything not yet settled: the platform's outstanding exposure. */
+  /** Sum, in minor units, of everything not yet decided: the platform's outstanding exposure. */
   openExposurePence: number;
   approvedSinceCount: number;
 }
 
-const OPEN_STATES: Refund['state'][] = ['requested', 'needs_second_approval'];
-
 const requester = alias(users, 'refund_requester');
-const approver = alias(users, 'refund_approver');
+const decider = alias(users, 'refund_decider');
 
 export async function findRefundById(actor: Actor, refundId: string): Promise<Refund | undefined> {
   requirePermission(actor, 'refunds.read');
@@ -97,12 +88,12 @@ export async function refundTotals(actor: Actor, approvedSince: Date): Promise<R
   requirePermission(actor, 'refunds.read');
   const [row] = await getDb()
     .select({
-      openCount: count(sql`case when ${inArray(refunds.state, OPEN_STATES)} then 1 end`),
+      openCount: count(sql`case when ${refunds.state} = 'requested' then 1 end`),
       openExposurePence: sum(
-        sql`case when ${inArray(refunds.state, OPEN_STATES)} then ${refunds.amountPence} else 0 end`,
+        sql`case when ${refunds.state} = 'requested' then ${refunds.amountPence} else 0 end`,
       ),
       approvedSinceCount: count(
-        sql`case when ${refunds.state} = 'approved' and ${gte(refunds.updatedAt, approvedSince)} then 1 end`,
+        sql`case when ${refunds.state} = 'approved' and ${gte(refunds.decidedAt, approvedSince)} then 1 end`,
       ),
     })
     .from(refunds);
@@ -123,44 +114,20 @@ async function selectRefundRows(
 ): Promise<RefundRow[]> {
   requirePermission(actor, 'refunds.read');
   const query = getDb()
-    .select({ refund: refunds, requestedByEmail: requester.email })
+    .select({ refund: refunds, requestedByEmail: requester.email, decidedByEmail: decider.email })
     .from(refunds)
     .innerJoin(requester, eq(requester.id, refunds.requestedById))
+    .leftJoin(decider, eq(decider.id, refunds.decidedById))
     .where(where)
     .limit(limit)
     .offset(offset);
 
   const rows = await (orderBy === undefined ? query : query.orderBy(orderBy));
-  if (rows.length === 0) return [];
-
-  const approvals = await approvalsByRefund(rows.map(({ refund }) => refund.id));
-  return rows.map(({ refund, requestedByEmail }) => ({
+  return rows.map(({ refund, requestedByEmail, decidedByEmail }) => ({
     ...refund,
     requestedByEmail,
-    approvals: approvals.get(refund.id) ?? [],
+    decidedByEmail,
   }));
-}
-
-async function approvalsByRefund(refundIds: string[]): Promise<Map<string, RefundApprovalRow[]>> {
-  const rows = await getDb()
-    .select({
-      refundId: refundApprovals.refundId,
-      approverId: refundApprovals.approverId,
-      approverEmail: approver.email,
-      approvedAt: refundApprovals.approvedAt,
-    })
-    .from(refundApprovals)
-    .innerJoin(approver, eq(approver.id, refundApprovals.approverId))
-    .where(inArray(refundApprovals.refundId, refundIds))
-    .orderBy(asc(refundApprovals.approvedAt));
-
-  const byRefund = new Map<string, RefundApprovalRow[]>();
-  for (const { refundId, ...approval } of rows) {
-    const existing = byRefund.get(refundId);
-    if (existing === undefined) byRefund.set(refundId, [approval]);
-    else existing.push(approval);
-  }
-  return byRefund;
 }
 
 function refundWhere(filter: RefundFilter): SQL | undefined {

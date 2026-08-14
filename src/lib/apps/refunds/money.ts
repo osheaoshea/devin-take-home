@@ -6,3 +6,8 @@ export function formatMoney(amountPence: number, currency = 'GBP'): string {
     minimumFractionDigits: 2,
   }).format(amountPence / 100);
 }
+
+/** People filter in pounds; everything below the presentation edge speaks minor units. */
+export function penceFromPounds(pounds: number): number {
+  return Math.round(pounds * 100);
+}
