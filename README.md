@@ -26,7 +26,7 @@ pnpm dev                      # http://localhost:3000
 | `pnpm format`      | Prettier write (`format:check` in CI)                    |
 | `pnpm test`        | Vitest — unit plus database-backed audit/workflow tests  |
 | `pnpm test:e2e`    | Playwright smoke tests against a production build        |
-| `pnpm db:generate` | Generate a migration from `src/lib/db/schema.ts`         |
+| `pnpm db:generate` | Generate a migration from `src/lib/db/schema/`           |
 | `pnpm db:migrate`  | Apply migrations                                         |
 | `pnpm db:seed`     | Reseed demo data (idempotent)                            |
 | `pnpm db:reset`    | Drop everything, then `db:migrate` + `db:seed`           |

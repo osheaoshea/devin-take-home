@@ -1,7 +1,7 @@
 'use client';
 
 import { z } from 'zod';
-import { Form } from '@/lib/ui';
+import { Form } from '@/lib/ui/Form';
 
 const schema = z.object({
   email: z.string().email('Enter the demo account email'),

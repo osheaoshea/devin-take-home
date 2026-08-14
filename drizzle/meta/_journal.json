@@ -5,15 +5,36 @@
     {
       "idx": 0,
       "version": "7",
-      "when": 1786705089501,
-      "tag": "0000_abnormal_titania",
+      "when": 1786721452727,
+      "tag": "0000_foundation",
       "breakpoints": true
     },
     {
       "idx": 1,
       "version": "7",
-      "when": 1786716862884,
+      "when": 1786721460259,
       "tag": "0001_append_only_audit_log",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1786721460876,
+      "tag": "0002_kyc",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1786721461564,
+      "tag": "0003_refunds",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1786721462197,
+      "tag": "0004_flags",
       "breakpoints": true
     }
   ]
