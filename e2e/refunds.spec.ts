@@ -27,14 +27,14 @@ async function openSeededRequest(page: Page, index: number): Promise<string> {
 }
 
 test('a finance manager approves one seeded refund and rejects another', async ({ page }) => {
-  await signIn(page, 'fmanager@demo.co');
+  await signIn(page, 'manager1@demo.co');
 
   const approvedId = await openSeededRequest(page, 0);
   await page.getByTestId('refund-action-approved').getByRole('button').click();
 
   const approved = page.getByRole('dialog');
   await expect(approved.getByText('approved', { exact: true }).first()).toBeVisible();
-  await expect(approved).toContainText('fmanager@demo.co');
+  await expect(approved).toContainText('manager1@demo.co');
   await expect(approved).toContainText('terminal');
   // The provider ran on the way into `approved`, and its refund id is on the record.
   await expect(approved).toContainText(/provider re_/);
@@ -45,7 +45,7 @@ test('a finance manager approves one seeded refund and rejects another', async (
 
   const rejected = page.getByRole('dialog');
   await expect(rejected.getByText('rejected', { exact: true }).first()).toBeVisible();
-  await expect(rejected).toContainText('fmanager@demo.co');
+  await expect(rejected).toContainText('manager1@demo.co');
   await expect(rejected).not.toContainText('provider re_');
 
   // Both decisions are in the log, each naming the manager who took it.
