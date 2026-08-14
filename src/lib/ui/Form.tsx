@@ -1,7 +1,17 @@
 'use client';
 
-import { useState } from 'react';
+import clsx from 'clsx';
+import { useId, useState } from 'react';
 import type { z } from 'zod';
+
+export type SubmitTone = 'accent' | 'success' | 'warning' | 'danger';
+
+const SUBMIT_TONE_CLASSES: Record<SubmitTone, string> = {
+  accent: 'bg-accent',
+  success: 'bg-green-600',
+  warning: 'bg-amber-600',
+  danger: 'bg-red-600',
+};
 
 export interface FieldConfig {
   name: string;
@@ -21,15 +31,23 @@ export function Form({
   fields,
   action,
   submitLabel = 'Save',
+  submitTone = 'accent',
+  idPrefix,
   error,
 }: {
   schema: z.ZodType<unknown>;
   fields: FieldConfig[];
   action: (formData: FormData) => void | Promise<void>;
   submitLabel?: string;
+  submitTone?: SubmitTone;
+  /** Namespaces the field ids so sibling forms posting the same field names keep distinct labels. */
+  idPrefix?: string;
   error?: string;
 }) {
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
+  const generatedPrefix = useId();
+  const prefix = idPrefix ?? generatedPrefix;
+  const fieldId = (name: string): string => `${prefix}-${name}`;
 
   return (
     <form
@@ -54,12 +72,12 @@ export function Form({
     >
       {fields.map((field) => (
         <div key={field.name} className="space-y-1">
-          <label className="block text-sm font-medium" htmlFor={field.name}>
+          <label className="block text-sm font-medium" htmlFor={fieldId(field.name)}>
             {field.label}
           </label>
           {field.type === 'select' ? (
             <select
-              id={field.name}
+              id={fieldId(field.name)}
               name={field.name}
               defaultValue={field.defaultValue}
               className="w-full rounded border border-line bg-surface px-2 py-1.5 text-sm"
@@ -72,7 +90,7 @@ export function Form({
             </select>
           ) : (
             <input
-              id={field.name}
+              id={fieldId(field.name)}
               name={field.name}
               type={field.type ?? 'text'}
               placeholder={field.placeholder}
@@ -94,7 +112,10 @@ export function Form({
       ) : null}
       <button
         type="submit"
-        className="rounded bg-accent px-3 py-1.5 text-sm font-medium text-white hover:opacity-90"
+        className={clsx(
+          'rounded px-3 py-1.5 text-sm font-medium text-white hover:opacity-90',
+          SUBMIT_TONE_CLASSES[submitTone],
+        )}
       >
         {submitLabel}
       </button>
