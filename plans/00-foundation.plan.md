@@ -52,6 +52,9 @@ Docker Compose locally. Identical client code; environments differ only by `DATA
 **Hard constraint that follows:** `pg` uses TCP, so every DB-touching route handler, server action, and page
 declares the **Node runtime** — no Edge. This is a spec-level rule, not a per-file judgement call.
 
+Conveniently, Next 16's `proxy.ts` (the rename of `middleware.ts`) also runs **only** on the Node runtime and
+its runtime is not configurable, so there is no Edge/Node split anywhere in the app.
+
 Rejected: `neon-serverless` (WebSocket) in prod + `pg` locally — two clients, breaks "only `DATABASE_URL`
 differs". Rejected: `neon-http` with best-effort auditing — destroys the crown jewel.
 
@@ -98,14 +101,15 @@ relationally in this prototype.
 
 The **authoritative layer is the data-access layer and server actions**: an explicit `actor` argument threaded
 into every `lib/db` accessor and `audited()` call, plus `requirePermission`. Layout-level checks are **UX
-redirects only**. `proxy.ts` (Next 16's rename of `middleware.ts`) stays Edge-only and does
-**cookie-presence checks only**.
+redirects only**. `proxy.ts` (Next 16's rename of `middleware.ts`, Node runtime) does **cookie-presence checks
+only** — deliberately, even though its runtime would now permit a DB read.
 
 Additional rule: **every route handler calls `requirePermission` itself**, except the public KYC webhook and
 the public flag-evaluation endpoint.
 
-Rejected: Node-runtime middleware resolving roles from the DB (a query on every matched request, and it
-centralizes rules away from the code that uses them). Rejected: accessors calling `auth()` themselves (hides
+Rejected: resolving roles from the DB in `proxy.ts` (a query on every matched request, and it centralizes rules
+away from the code that uses them; Next's own guidance is that the proxy layer is for routing/rewrites, not
+authorization). Rejected: accessors calling `auth()` themselves (hides
 the dependency the whole platform is trying to prove, and is untestable).
 
 Mechanically enforced: an ESLint `no-restricted-syntax`/`no-restricted-properties` rule banning
@@ -217,8 +221,9 @@ Next.js **16.3.1** (exact) + React 19, Tailwind v4, Node 22 LTS, pnpm 10, `next-
 **5.0.0-beta.32**, Drizzle latest, Zod, Vitest, Playwright. No caret ranges for `next`/`next-auth` — that is
 how a demo breaks the day before it is presented.
 
-Next 16 renamed `middleware.ts` to **`proxy.ts`**; the spec asserts `proxy.ts` for the Edge cookie-presence
-layer.
+Next 16 renamed `middleware.ts` to **`proxy.ts`** (exported function `proxy`, Node runtime only); the spec
+asserts `proxy.ts` for the cookie-presence layer. `middleware.ts` still exists for Edge but is deprecated and
+ignored at build time when `proxy.ts` is present — we do not use it.
 
 ---
 
@@ -231,7 +236,7 @@ foundation owns only shared enums, of which there are none initially.
 | Table | Notes |
 |---|---|
 | `users` | + `roles jsonb`, `roles_resolved_at`, `password_hash` (demo only) |
-| Auth.js adapter tables | `accounts` (+ `sessions`/`verification_tokens` as the adapter requires, unused for sessions per §1.1) |
+| Auth.js adapter tables | `accounts` required; `sessions` and `verification_tokens` are optional for the Drizzle adapter (needed only for the database-session strategy and magic links respectively) and are therefore **not created** per §1.1 |
 | `audit_log` | `id, actor_id, actor_roles_snapshot, action, entity_type, entity_id, before jsonb, after jsonb, created_at`; append-only trigger; indexes per §2.6 |
 | `_reference_requests` | reference app; state stored as a Postgres enum |
 
@@ -296,7 +301,8 @@ plus the three non-negotiables. Contents:
 |---|---|---|
 | JWT sessions (§1.1) | Session revocation bounded by the 30-min TTL; role changes apply next request | Credentials provider requires JWT; one code path in both environments |
 | `next-auth` is beta (`5.0.0-beta.32`); beta.32 fixed GHSA-8fpg-xm3f-6cx3, where a config error made `auth()` truthy so existence checks failed **open** | A security-critical dependency is pre-1.0 | Exact pin, plus the §2.5 mitigation: authorization lives in the data layer and server actions, never in an existence check |
-| Node runtime everywhere DB is touched (§2.1) | No Edge rendering for app routes | Non-negotiable given the audit transaction guarantee |
+| Node runtime everywhere (§2.1) | No Edge rendering for app routes | Non-negotiable given the audit transaction guarantee; `proxy.ts` is Node-only in Next 16 anyway |
+| Custom `users` table extending the adapter's default (§4) | We own the adapter's schema contract; an adapter upgrade could require a migration | Roles snapshot + demo `password_hash` must live on the user row; the adapter explicitly supports passing your own tables |
 | Append-only by trigger, not by DB role (§2.3) | An owner-level actor could drop the trigger | Least-privileged role is provisioning work, documented as hardening |
 | Group→role map in env (§2.4) | No admin UI for mapping | Config, not data, at prototype scale; table noted as the production evolution |
 | Offset pagination for app tables (§2.6) | Degrades at scale | Prototype volumes; `audit_log` — the only unbounded table — uses keyset |
