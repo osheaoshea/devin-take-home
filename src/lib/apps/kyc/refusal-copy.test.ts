@@ -4,7 +4,7 @@ import { parseActionError, refusalCopy } from './refusal-copy';
 describe('refusalCopy', () => {
   it('explains the four-eyes refusal in the reviewer\u2019s terms', () => {
     expect(refusalCopy('same_actor_as_escalator')).toBe(
-      'You escalated this case, so a different manager must resolve it (four-eyes).',
+      'You escalated this case, so a different manager must resolve it.',
     );
   });
 

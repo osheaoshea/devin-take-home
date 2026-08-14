@@ -3,7 +3,7 @@ import type { KycState } from './machine';
 
 const COPY: Record<string, string> = {
   same_actor_as_escalator:
-    'You escalated this case, so a different manager must resolve it (four-eyes).',
+    'You escalated this case, so a different manager must resolve it.',
   stale_state: 'This case moved on while you had it open. Reopen it to see where it stands.',
   invalid_transition: 'This case can no longer move to that state.',
   invalid_reason_code: 'Choose one of the listed reason codes.',
