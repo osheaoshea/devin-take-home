@@ -2,7 +2,7 @@ import Link from 'next/link';
 import { z } from 'zod';
 import { readAuditLog, type AuditEntry } from '@/lib/audit';
 import { requireActor } from '@/lib/auth';
-import { requirePermission } from '@/lib/rbac';
+import { enforcePermission } from '@/lib/rbac/enforce';
 import { DataTable, DetailDrawer, JsonDiff, PageShell, StatusBadge } from '@/lib/ui';
 
 const filterSchema = z.object({
@@ -24,7 +24,7 @@ export default async function AuditPage({
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
   const actor = await requireActor();
-  requirePermission(actor, 'audit.read');
+  enforcePermission(actor, 'audit.read');
 
   const raw = await searchParams;
   const params = Object.fromEntries(

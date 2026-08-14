@@ -49,12 +49,15 @@ claims the real tenant would, so role resolution is exercised end to end.
 | `engineer@demo.co`  | engineer                                        |
 | `admin@demo.co`     | admin                                           |
 
+`viewer` reads every tool; every other working role reads only its own tool, so signing in as
+`engineer@demo.co` shows Flags and refuses KYC and Refunds with a 403 page.
+
 ## Architecture
 
 | Module              | Responsibility                                                                               |
 | ------------------- | -------------------------------------------------------------------------------------------- |
 | `src/lib/auth`      | Auth.js config, Entra ID provider, mock IdP sign-in, group→role resolution, step-up MFA seam |
-| `src/lib/rbac`      | Roles, permissions, `requireRole` / `requirePermission`, `AuthorizationError`                |
+| `src/lib/rbac`      | Roles, permissions, `requireRole` / `requirePermission` (throw), `enforce*` (403 page)       |
 | `src/lib/audit`     | `audited()` — mutation and audit entry in one transaction — and the audit reader             |
 | `src/lib/workflow`  | Generic transition machine plus guards (four-eyes, thresholds, permissions)                  |
 | `src/lib/db`        | Drizzle schema, client, accessors, mutations, migrations, seed                               |

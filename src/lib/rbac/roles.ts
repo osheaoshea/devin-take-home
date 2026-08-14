@@ -41,10 +41,14 @@ export const PERMISSIONS = [
 
 export type Permission = (typeof PERMISSIONS)[number];
 
+/**
+ * `viewer` is the read-only-across-the-platform role. Every other non-admin role reads only
+ * the app it works in, so the hub and nav genuinely differ by role.
+ */
 const READ_EVERYWHERE: Permission[] = ['kyc.read', 'refunds.read', 'flags.read'];
 
 const KYC_ANALYST: Permission[] = [
-  ...READ_EVERYWHERE,
+  'kyc.read',
   'kyc.claim',
   'kyc.review',
   'kyc.approve',
@@ -53,7 +57,7 @@ const KYC_ANALYST: Permission[] = [
 ];
 
 const FINANCE_MANAGER: Permission[] = [
-  ...READ_EVERYWHERE,
+  'refunds.read',
   'refunds.create',
   'refunds.approve_small',
   'refunds.approve',
@@ -65,9 +69,9 @@ const NON_ADMIN_ROLE_PERMISSIONS: Record<Exclude<Role, 'admin'>, Permission[]> =
   viewer: READ_EVERYWHERE,
   kyc_analyst: KYC_ANALYST,
   kyc_manager: [...KYC_ANALYST, 'kyc.resolve_escalated'],
-  support_agent: [...READ_EVERYWHERE, 'refunds.create', 'refunds.approve_small'],
+  support_agent: ['refunds.read', 'refunds.create', 'refunds.approve_small'],
   finance_manager: FINANCE_MANAGER,
-  engineer: [...READ_EVERYWHERE, 'flags.write', 'flags.kill_switch'],
+  engineer: ['flags.read', 'flags.write', 'flags.kill_switch'],
 };
 
 /**

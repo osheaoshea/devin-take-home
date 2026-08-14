@@ -1,10 +1,10 @@
 import { requireActor } from '@/lib/auth';
-import { requirePermission } from '@/lib/rbac';
+import { enforcePermission } from '@/lib/rbac/enforce';
 import { PageShell } from '@/lib/ui';
 
 export default async function KycPage() {
   const actor = await requireActor();
-  requirePermission(actor, 'kyc.read');
+  enforcePermission(actor, 'kyc.read');
 
   return (
     <PageShell actor={actor} title="KYC review queue" description="Delivered by spec 01.">

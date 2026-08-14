@@ -70,6 +70,22 @@ describe('permissionsFor', () => {
     expect(permissions.has('kyc.resolve_escalated')).toBe(false);
   });
 
+  it('confines a working role to the app it works in', () => {
+    const engineer = permissionsFor(['engineer']);
+    expect(engineer.has('flags.read')).toBe(true);
+    expect(engineer.has('kyc.read')).toBe(false);
+    expect(engineer.has('refunds.read')).toBe(false);
+
+    const analyst = permissionsFor(['kyc_analyst']);
+    expect(analyst.has('kyc.read')).toBe(true);
+    expect(analyst.has('refunds.read')).toBe(false);
+    expect(analyst.has('flags.read')).toBe(false);
+
+    const finance = permissionsFor(['finance_manager']);
+    expect(finance.has('refunds.read')).toBe(true);
+    expect(finance.has('kyc.read')).toBe(false);
+  });
+
   it('lets a kyc_manager do everything an analyst can, plus resolve escalated cases', () => {
     const manager = permissionsFor(['kyc_manager']);
     for (const permission of permissionsFor(['kyc_analyst'])) {

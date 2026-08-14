@@ -108,6 +108,8 @@ permissionsFor(roles: Role[]): Set<Permission>              // admin = union of 
 can(actor: Actor, permission: Permission): boolean
 requireRole(actor, ...roles): void        // throws AuthorizationError
 requirePermission(actor, permission): void
+enforceRole(actor, ...roles): void        // route-level: interrupts with a 403 page
+enforcePermission(actor, permission): void
 ```
 
 - `admin` is expanded to the union of all role permissions in `permissionsFor`, not special-cased at call sites.
@@ -159,8 +161,10 @@ Tables from technical context §7 — spec 00 creates all of them so specs 01–
 
 ### Access control at two layers
 
-1. Middleware/action layer: `requireActor()` then `requireRole`/`requirePermission` at the top of every route segment layout and every server action.
+1. Route layer: `requireActor()` then `enforceRole`/`enforcePermission` at the top of every route segment, which interrupt rendering so Next serves `app/forbidden.tsx` with a real 403. Server actions and accessors use the throwing `requireRole`/`requirePermission`, having nothing to render.
 2. Query layer: accessors in `lib/db` accept the actor and scope rows; an unauthorized read returns no rows rather than filtered-in-UI rows.
+
+Only `viewer` reads across every tool; each working role reads only the app it works in, so the hub cards and the nav genuinely differ by role.
 
 ### Tooling decisions (empty repo)
 

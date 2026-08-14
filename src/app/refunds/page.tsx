@@ -1,10 +1,10 @@
 import { requireActor } from '@/lib/auth';
-import { requirePermission } from '@/lib/rbac';
+import { enforcePermission } from '@/lib/rbac/enforce';
 import { PageShell } from '@/lib/ui';
 
 export default async function RefundsPage() {
   const actor = await requireActor();
-  requirePermission(actor, 'refunds.read');
+  enforcePermission(actor, 'refunds.read');
 
   return (
     <PageShell actor={actor} title="Refunds dashboard" description="Delivered by spec 02.">

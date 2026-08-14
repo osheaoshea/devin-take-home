@@ -70,10 +70,13 @@ export default async function HubPage() {
             <article
               key={card.href}
               className="flex flex-col gap-3 rounded border border-line bg-surface p-4"
+              data-testid={`card-${card.href}`}
             >
               <div className="flex items-start justify-between gap-2">
                 <h2 className="font-medium">{card.name}</h2>
-                <StatusBadge tone={permitted ? 'info' : 'neutral'}>{card.badge}</StatusBadge>
+                <StatusBadge tone={permitted ? 'info' : 'neutral'}>
+                  {permitted ? card.badge : 'no access'}
+                </StatusBadge>
               </div>
               <p className="text-sm text-muted">{card.description}</p>
               <p className="text-xs text-muted">Roles: {card.roles}</p>

@@ -1,10 +1,10 @@
 import { requireActor } from '@/lib/auth';
-import { requirePermission } from '@/lib/rbac';
+import { enforcePermission } from '@/lib/rbac/enforce';
 import { PageShell } from '@/lib/ui';
 
 export default async function FlagsPage() {
   const actor = await requireActor();
-  requirePermission(actor, 'flags.read');
+  enforcePermission(actor, 'flags.read');
 
   return (
     <PageShell actor={actor} title="Feature flags" description="Delivered by spec 03.">
