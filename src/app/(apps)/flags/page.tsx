@@ -1,4 +1,4 @@
-import { signOutAction } from '@/app/actions';
+import { signOutAction, switchDemoUserAction } from '@/app/actions';
 import { ENVIRONMENTS } from '@/lib/apps/flags';
 import { readAuditLog, type AuditEntry } from '@/lib/audit';
 import { requireActor } from '@/lib/auth';
@@ -28,7 +28,9 @@ export default async function FlagsPage({
       actor={actor}
       title="Feature flags"
       description="Per-environment flag state, percentage rollout and a one-click kill switch."
+      pathname="/flags"
       signOutAction={signOutAction}
+      switchDemoUserAction={switchDemoUserAction}
     >
       <DataTable<FlagRow>
         basePath="/flags"

@@ -23,10 +23,10 @@ async function openFirstCase(page: Page, state: string): Promise<string> {
   return id ?? '';
 }
 
-test('an analyst claims a pending case, approves it, and the action lands in the audit log', async ({
+test('a manager claims a pending case, approves it, and the action lands in the audit log', async ({
   page,
 }) => {
-  await signIn(page, 'analyst@demo.co');
+  await signIn(page, 'manager1@demo.co');
   const caseId = await openFirstCase(page, 'pending');
 
   const drawer = page.getByRole('dialog');
@@ -36,7 +36,7 @@ test('an analyst claims a pending case, approves it, and the action lands in the
   await expect(
     page.getByRole('dialog').getByText('in_review', { exact: true }).first(),
   ).toBeVisible();
-  await expect(page.getByRole('dialog')).toContainText('analyst@demo.co');
+  await expect(page.getByRole('dialog')).toContainText('manager1@demo.co');
 
   // Sibling action forms post the same field name, so each label must reach its own select.
   const approve = page.getByTestId('kyc-action-approved');
@@ -62,14 +62,14 @@ test('an analyst claims a pending case, approves it, and the action lands in the
   await expect(rows.filter({ hasText: 'kyc.case.in_review' })).toHaveCount(1);
   await rows.filter({ hasText: 'kyc.case.approved' }).getByRole('link').first().click();
   await expect(page.getByRole('dialog')).toContainText('documents_verified');
-  await expect(page.getByRole('dialog')).toContainText('analyst@demo.co');
+  await expect(page.getByRole('dialog')).toContainText('manager1@demo.co');
 });
 
 test('a refused action is disabled and explained before it is clicked', async ({ page }) => {
-  await signIn(page, 'analyst@demo.co');
+  await signIn(page, 'viewer@demo.co');
   await openFirstCase(page, 'escalated');
 
-  // The analyst may not resolve escalations at all, so both panels explain themselves in prose.
+  // The viewer may not resolve escalations at all, so both panels explain themselves in prose.
   for (const target of ['approved', 'rejected']) {
     const panel = page.getByTestId(`kyc-action-${target}`);
     await expect(panel.getByRole('button')).toBeDisabled();
@@ -78,8 +78,8 @@ test('a refused action is disabled and explained before it is clicked', async ({
   await expect(page.getByRole('dialog')).not.toContainText('missing_permission');
 });
 
-test('a manager resolves a case the analyst escalated (four eyes)', async ({ page }) => {
-  await signIn(page, 'kmanager@demo.co');
+test('a manager resolves a case another manager escalated (four eyes)', async ({ page }) => {
+  await signIn(page, 'manager2@demo.co');
   await openFirstCase(page, 'escalated');
 
   const approve = page.getByTestId('kyc-action-approved');
@@ -95,7 +95,7 @@ test('a manager resolves a case the analyst escalated (four eyes)', async ({ pag
 test('the manager who escalated a case is shown the four-eyes rule under each blocked action', async ({
   page,
 }) => {
-  await signIn(page, 'kmanager@demo.co');
+  await signIn(page, 'manager1@demo.co');
   const caseId = await openFirstCase(page, 'pending');
 
   await page.getByTestId('kyc-action-in_review').getByRole('button').click();

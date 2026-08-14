@@ -28,7 +28,7 @@ never raised in the app — `lib/db/seed/refunds.ts` is the only source of reque
 - `lib/providers` — `paymentsProvider()` / `MockStripeProvider.issueRefund({ paymentId, amountPence, currency })`.
 - `lib/time` — `now()`, the source of `decidedAt`.
 - Seeded demo data: 30 refunds across `requested`, `approved` and `rejected` (`lib/db/seed/refunds.ts`),
-  `agent@demo.co` as requester and `fmanager@demo.co` as the decider on the settled ones.
+  `manager1@demo.co` as requester and `manager2@demo.co` as the decider on the settled ones.
 
 ## State machine
 

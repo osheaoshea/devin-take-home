@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { signOutAction } from '@/app/actions';
+import { signOutAction, switchDemoUserAction } from '@/app/actions';
 import { documentUrlsOf, KYC_STATES } from '@/lib/apps/kyc';
 import { readAuditLog, type AuditEntry } from '@/lib/audit';
 import { requireActor } from '@/lib/auth';
@@ -53,7 +53,9 @@ export default async function KycPage({
       actor={actor}
       title="KYC review queue"
       description="Claim applicant checks, work them against the SLA, and approve, reject or escalate."
+      pathname="/kyc"
       signOutAction={signOutAction}
+      switchDemoUserAction={switchDemoUserAction}
     >
       <div className="mb-4 flex flex-wrap items-end justify-between gap-3">
         <form className="flex flex-wrap items-end gap-3 rounded border border-line bg-surface p-4">

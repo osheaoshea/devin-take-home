@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { signOutAction } from '@/app/actions';
+import { signOutAction, switchDemoUserAction } from '@/app/actions';
 import { APP_REGISTRY } from '@/lib/apps/registry';
 import { requireActor } from '@/lib/auth';
 import { can } from '@/lib/rbac';
@@ -29,7 +29,9 @@ export default async function HubPage() {
       actor={actor}
       title="Internal tools"
       description="One platform, many tools. Identity, roles, audit and workflow are shared."
+      pathname="/"
       signOutAction={signOutAction}
+      switchDemoUserAction={switchDemoUserAction}
     >
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {cards.map((card) => {

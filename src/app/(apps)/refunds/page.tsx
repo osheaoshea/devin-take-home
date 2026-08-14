@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { signOutAction } from '@/app/actions';
+import { signOutAction, switchDemoUserAction } from '@/app/actions';
 import { formatMoney, penceFromPounds, REFUND_STATES } from '@/lib/apps/refunds';
 import { readAuditLog, type AuditEntry } from '@/lib/audit';
 import { requireActor } from '@/lib/auth';
@@ -56,7 +56,9 @@ export default async function RefundsPage({
       actor={actor}
       title="Refunds"
       description="Review the refund requests raised against mock payments and decide each one: approving issues the refund with the payments provider."
+      pathname="/refunds"
       signOutAction={signOutAction}
+      switchDemoUserAction={switchDemoUserAction}
     >
       <div className="mb-6 grid gap-4 sm:grid-cols-3">
         <Tile

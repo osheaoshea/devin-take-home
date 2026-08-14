@@ -23,8 +23,7 @@ export async function seedKyc(db: Database, ids: Record<string, string>): Promis
   await db.execute(sql`truncate table kyc_events, kyc_cases restart identity cascade`);
 
   const random = makeRandom(7);
-  const analyst = ids['analyst@demo.co']!;
-  const manager = ids['kmanager@demo.co']!;
+  const manager = ids['manager1@demo.co']!;
 
   for (let index = 0; index < 40; index += 1) {
     const state = index < 14 ? 'pending' : pick(random, KYC_STATES);
@@ -44,8 +43,8 @@ export async function seedKyc(db: Database, ids: Record<string, string>): Promis
         providerRiskScore: riskScore,
         watchlistHits: riskScore > 80 ? [{ list: 'OFAC-SDN', match: applicantName }] : [],
         state,
-        assignedToId: state === 'pending' ? null : analyst,
-        escalatedById: state === 'escalated' ? analyst : null,
+        assignedToId: state === 'pending' ? null : manager,
+        escalatedById: state === 'escalated' ? manager : null,
         resolutionReasonCode:
           state === 'approved'
             ? 'documents_verified'
@@ -82,6 +81,5 @@ export async function seedKyc(db: Database, ids: Record<string, string>): Promis
         },
       },
     });
-    void manager;
   }
 }

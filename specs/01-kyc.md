@@ -29,8 +29,8 @@ audit log. Deep app: it exercises every foundation seam.
 - `lib/ui` — `PageShell`, `DataTable`, `DetailDrawer`, `Form`, `StatusBadge`, `JsonDiff`.
 - `lib/providers` — `onfidoCheckPayloadSchema`, `MockKycProvider`, `kycProvider()`.
 - `lib/time` — `now()`.
-- Seeded demo data: 40 cases across all five states (`lib/db/seed/kyc.ts`), `analyst@demo.co` as assignee and
-  escalator, `kmanager@demo.co` as the distinct resolver.
+- Seeded demo data: 40 cases across all five states (`lib/db/seed/kyc.ts`), `manager1@demo.co` as assignee and
+  escalator, `manager2@demo.co` as the distinct resolver.
 
 ## State machine
 
