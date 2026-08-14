@@ -96,8 +96,14 @@ describe('permissionsFor', () => {
 
   it('unions the permissions of every role the actor holds', () => {
     const permissions = permissionsFor(['support_agent', 'engineer']);
-    expect(permissions.has('refunds.create')).toBe(true);
+    expect(permissions.has('refunds.read')).toBe(true);
     expect(permissions.has('flags.write')).toBe(true);
+  });
+
+  it('lets a finance_manager decide refunds but a support_agent only read them', () => {
+    const finance = permissionsFor(['finance_manager']);
+    expect([...finance].sort()).toEqual(['refunds.approve', 'refunds.read', 'refunds.reject']);
+    expect([...permissionsFor(['support_agent'])]).toEqual(['refunds.read']);
   });
 
   it('gives admin every permission plus the audit reader and demo tools', () => {
