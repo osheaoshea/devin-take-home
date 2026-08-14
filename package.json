@@ -22,18 +22,11 @@
     "db:seed": "tsx src/lib/db/seed.ts",
     "db:reset": "tsx src/lib/db/reset.ts && pnpm db:migrate && pnpm db:seed"
   },
-  "pnpm": {
-    "onlyBuiltDependencies": [
-      "esbuild",
-      "sharp",
-      "unrs-resolver"
-    ]
-  },
   "dependencies": {
     "@auth/drizzle-adapter": "1.7.4",
     "clsx": "2.1.1",
     "drizzle-orm": "0.38.4",
-    "next": "15.1.6",
+    "next": "15.5.23",
     "next-auth": "5.0.0-beta.25",
     "postgres": "3.4.5",
     "react": "19.0.0",
@@ -50,7 +43,7 @@
     "dotenv": "16.4.7",
     "drizzle-kit": "0.30.4",
     "eslint": "9.19.0",
-    "eslint-config-next": "15.1.6",
+    "eslint-config-next": "15.5.23",
     "eslint-config-prettier": "10.0.1",
     "eslint-plugin-import": "2.31.0",
     "postcss": "8.5.1",

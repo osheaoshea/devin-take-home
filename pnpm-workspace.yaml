@@ -1,0 +1,5 @@
+# pnpm 10 reads build allow-lists from here, not from package.json.
+onlyBuiltDependencies:
+  - esbuild
+  - sharp
+  - unrs-resolver

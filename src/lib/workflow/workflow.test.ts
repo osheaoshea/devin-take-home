@@ -36,7 +36,7 @@ const kycMachine = defineMachine<Case, Case['state']>({
       distinctActor((entity) => entity.escalatedBy, 'four_eyes_same_actor'),
     ],
   },
-  persist: async (_tx, entity, to) => ({ ...entity, state: to }),
+  persist: async ({ entity, to }) => ({ ...entity, state: to }),
 });
 
 const pendingCase: Case = { id: 'c1', state: 'pending', escalatedBy: null };
@@ -148,7 +148,7 @@ describe('threshold guards (amountAtMost)', () => {
         ),
       ],
     },
-    persist: async (_tx, entity, to) => ({ ...entity, state: to }),
+    persist: async ({ entity, to }) => ({ ...entity, state: to }),
   });
 
   const refund = (amountPence: number): Refund => ({ id: 'r1', state: 'requested', amountPence });
@@ -193,7 +193,7 @@ describe('guard combinators', () => {
       entityType: 'doc',
       stateOf: (entity) => entity.state,
       transitions: { 'draft->published': guards },
-      persist: async (_tx, entity, to) => ({ ...entity, state: to }),
+      persist: async ({ entity, to }) => ({ ...entity, state: to }),
     });
 
   const draft: Doc = { id: 'd1', state: 'draft' };

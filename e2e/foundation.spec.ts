@@ -6,6 +6,13 @@ test('signed-out visitors are sent to the mock IdP sign-in page', async ({ page 
   await expect(page.getByText('Microsoft Entra ID')).toBeVisible();
 });
 
+test('middleware turns an anonymous request for a tool away before the page runs', async ({
+  page,
+}) => {
+  await page.goto('/kyc');
+  await expect(page).toHaveURL(/\/signin$/);
+});
+
 test('an admin sees the hub with their roles and can open the audit log', async ({ page }) => {
   await page.goto('/signin');
   await page.getByLabel('Email').fill('admin@demo.co');

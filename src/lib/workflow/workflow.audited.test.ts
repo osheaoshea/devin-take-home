@@ -4,15 +4,15 @@ import { closeDb } from '@/lib/db/client';
 import { findKycCaseById } from '@/lib/db/queries';
 import type { KycCase } from '@/lib/db/schema';
 import type { Actor } from '@/lib/rbac';
-import { defineMachine, hasPermission } from '@/lib/workflow';
+import { defineMachine, hasPermission, TransitionRefusedError } from '@/lib/workflow';
 import { createDemoUser, insertKycCase, resetDatabase } from '@/test/db';
 
 const machine = defineMachine<KycCase, KycCase['state']>({
   entityType: 'kyc_case',
   stateOf: (entity) => entity.state,
   transitions: { 'pending->in_review': [hasPermission('kyc.claim')] },
-  persist: (tx, entity, _to, context) =>
-    tx.claimKycCase(entity.id, (context as { assigneeId: string }).assigneeId),
+  persist: ({ tx, entity, from, context }) =>
+    tx.claimKycCase(entity.id, (context as { assigneeId: string }).assigneeId, from),
   action: (to) => `kyc.case.${to}`,
 });
 
@@ -69,5 +69,57 @@ describe('a transition executed through the workflow module', () => {
 
     expect(await readAuditLog(admin, { entityId: caseId })).toHaveLength(0);
     expect(await findKycCaseById(admin, caseId)).toMatchObject({ state: 'pending' });
+  });
+
+  it('refuses a transition whose entity was moved by someone else since it was read', async () => {
+    const caseId = await insertKycCase({ applicantName: 'Grace Hopper' });
+    const stale = await findKycCaseById(analyst, caseId);
+    const other = await createDemoUser('analyst2@demo.co', ['kyc_analyst']);
+
+    // The first analyst claims the case; the second still holds the pending read.
+    await machine.transition({
+      actor: other,
+      entity: (await findKycCaseById(other, caseId))!,
+      to: 'in_review',
+      context: { assigneeId: other.id },
+    });
+
+    await expect(
+      machine.transition({
+        actor: analyst,
+        entity: stale!,
+        to: 'in_review',
+        context: { assigneeId: analyst.id },
+      }),
+    ).rejects.toThrow(TransitionRefusedError);
+
+    // The winner's claim stands and the refused attempt left no trace.
+    expect(await findKycCaseById(admin, caseId)).toMatchObject({
+      state: 'in_review',
+      assignedToId: other.id,
+    });
+    const entries = await readAuditLog(admin, { entityId: caseId });
+    expect(entries).toHaveLength(1);
+    expect(entries[0]).toMatchObject({ actorId: other.id });
+  });
+
+  it('reports stale_state as the refusal reason', async () => {
+    const caseId = await insertKycCase({ applicantName: 'Grace Hopper' });
+    const stale = await findKycCaseById(analyst, caseId);
+    await machine.transition({
+      actor: analyst,
+      entity: stale!,
+      to: 'in_review',
+      context: { assigneeId: analyst.id },
+    });
+
+    await expect(
+      machine.transition({
+        actor: analyst,
+        entity: stale!,
+        to: 'in_review',
+        context: { assigneeId: analyst.id },
+      }),
+    ).rejects.toMatchObject({ reason: 'stale_state', transition: 'pending->in_review' });
   });
 });

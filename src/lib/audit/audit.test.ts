@@ -1,6 +1,7 @@
+import { sql } from 'drizzle-orm';
 import { afterAll, beforeEach, describe, expect, it } from 'vitest';
 import { audited, readAuditLog, readAuditLogPage } from '@/lib/audit';
-import { closeDb } from '@/lib/db/client';
+import { closeDb, getDb } from '@/lib/db/client';
 import { findKycCaseById } from '@/lib/db/queries';
 import { AuthorizationError, type Actor } from '@/lib/rbac';
 import { createDemoUser, insertKycCase, resetDatabase } from '@/test/db';
@@ -62,7 +63,7 @@ describe('audited', () => {
         entityId: caseId,
         before,
       },
-      (tx) => tx.claimKycCase(caseId, analyst.id),
+      (tx) => tx.claimKycCase(caseId, analyst.id, 'pending'),
     );
 
     const [entry] = await readAuditLog(admin, {});
@@ -75,7 +76,7 @@ describe('audited', () => {
 
     await audited(
       { actor: analyst, action: 'kyc.case.claim', entityType: 'kyc_case', entityId: caseId },
-      (tx) => tx.claimKycCase(caseId, analyst.id),
+      (tx) => tx.claimKycCase(caseId, analyst.id, 'pending'),
     );
 
     expect(await readAuditLog(admin, {})).toHaveLength(1);
@@ -88,13 +89,48 @@ describe('audited', () => {
       audited(
         { actor: analyst, action: 'kyc.case.claim', entityType: 'kyc_case', entityId: caseId },
         async (tx) => {
-          await tx.claimKycCase(caseId, analyst.id);
+          await tx.claimKycCase(caseId, analyst.id, 'pending');
           throw new Error('provider exploded');
         },
       ),
     ).rejects.toThrow('provider exploded');
 
     expect(await findKycCaseById(analyst, caseId)).toMatchObject({ state: 'pending' });
+    expect(await readAuditLog(admin, {})).toHaveLength(0);
+  });
+});
+
+describe('append-only enforcement', () => {
+  const anEntry = async (): Promise<string> => {
+    await audited(
+      { actor: analyst, action: 'kyc.case.claim', entityType: 'kyc_case', entityId: 'case-1' },
+      async () => undefined,
+    );
+    const [entry] = await readAuditLog(admin, {});
+    if (entry === undefined) throw new Error('expected an audit entry');
+    return entry.id;
+  };
+
+  it('refuses to update an entry', async () => {
+    const id = await anEntry();
+    await expect(
+      getDb().execute(sql`update audit_log set action = 'tampered' where id = ${id}`),
+    ).rejects.toThrow(/append-only/);
+    expect((await readAuditLog(admin, {}))[0]?.action).toBe('kyc.case.claim');
+  });
+
+  it('refuses to delete an entry', async () => {
+    const id = await anEntry();
+    await expect(getDb().execute(sql`delete from audit_log where id = ${id}`)).rejects.toThrow(
+      /append-only/,
+    );
+    expect(await readAuditLog(admin, {})).toHaveLength(1);
+  });
+
+  it('still allows the test harness to truncate the table', async () => {
+    await anEntry();
+    await resetDatabase();
+    admin = await createDemoUser('admin@demo.co', ['admin']);
     expect(await readAuditLog(admin, {})).toHaveLength(0);
   });
 });

@@ -48,6 +48,12 @@ export const authConfig: NextAuthConfig = {
      */
     async signIn({ user, profile }) {
       if (user.id === undefined) return;
+      if (profile !== undefined && !Array.isArray(profile.groups)) {
+        // Entra omits `groups` and sends `_claim_names`/`_claim_sources` instead once a user is
+        // in more than ~200 groups (the token overage limit). Resolving those needs a Graph
+        // call, which is deliberately out of scope here — such a user signs in with no roles.
+        console.warn(`sign-in for user ${user.id} carried no groups claim; resolving to no roles`);
+      }
       const groups = Array.isArray(profile?.groups) ? profile.groups.filter(isString) : [];
       const roles = resolveRoles(groups, parseGroupRoleMap(process.env.ENTRA_GROUP_MAP));
       await getDb().update(users).set({ groups, roles }).where(eq(users.id, user.id));

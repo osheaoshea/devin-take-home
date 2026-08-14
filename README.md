@@ -71,7 +71,17 @@ attempts are throttled per client and account.
 | `src/lib/providers` | `KycProvider` / `PaymentsProvider` interfaces with mock implementations                      |
 
 Access control is enforced twice: at the route or action, and again in the query accessors, so a
-hidden button is never the access control.
+hidden button is never the access control. `src/middleware.ts` adds a coarse outer gate — it
+redirects a request carrying no session cookie to `/signin` — but it runs on the edge, cannot
+reach the database, and is never the authorization decision.
+
+A transition is a compare-and-swap: guards are evaluated against an entity read outside the
+transaction, so the update carries the expected from-state in its `WHERE` and is refused
+(`stale_state`) when another writer moved the row first — the loser's transaction rolls back and
+writes no audit entry.
+
+The audit log is append-only in the database, not only by convention: a trigger raises on any
+`UPDATE` or `DELETE` against `audit_log`.
 
 ### Conventions (enforced, not just documented)
 

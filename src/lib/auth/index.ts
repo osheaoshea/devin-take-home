@@ -6,11 +6,13 @@ import { getDb } from '@/lib/db/client';
 import { sessions, users } from '@/lib/db/schema';
 import { AuthorizationError, parseGroupRoleMap, resolveRoles, type Actor } from '@/lib/rbac';
 import { auth } from './config';
+import { secureCookies, sessionCookieName } from './cookies';
 import { DEMO_ACCOUNTS, demoAuthEnabled } from './demo-accounts';
 import { verifyPassword } from './password';
 import { demoSignInThrottle } from './throttle';
 
 export { auth, handlers, signOut } from './config';
+export { secureCookies, sessionCookieName } from './cookies';
 export { DEMO_ACCOUNTS, DEMO_PASSWORD, demoAuthEnabled } from './demo-accounts';
 export { hashPassword, verifyPassword } from './password';
 export { stepUp, NoopStepUpProvider } from './step-up';
@@ -18,19 +20,6 @@ export { AttemptThrottle, TooManyAttemptsError, DEMO_SIGN_IN_POLICY } from './th
 export type { StepUpProvider } from './step-up';
 
 const SESSION_MAX_AGE_SECONDS = 60 * 60 * 8;
-
-/**
- * Auth.js keys its cookie on the deployment URL scheme, not NODE_ENV — a production build served
- * over http (local demo) must not use the `__Secure-` prefix or the browser drops the cookie.
- */
-function secureCookies(): boolean {
-  const url = process.env.AUTH_URL ?? process.env.NEXTAUTH_URL ?? '';
-  return url.startsWith('https://') || process.env.VERCEL === '1';
-}
-
-function sessionCookieName(): string {
-  return secureCookies() ? '__Secure-authjs.session-token' : 'authjs.session-token';
-}
 
 /** The signed-in actor, or undefined when signed out. */
 export async function getActor(): Promise<Actor | undefined> {

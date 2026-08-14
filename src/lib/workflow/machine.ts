@@ -1,4 +1,5 @@
 import { audited, type Tx } from '@/lib/audit';
+import { StaleStateError } from '@/lib/db/mutations';
 import type { Actor } from '@/lib/rbac';
 import type { Guard, TransitionResult, WorkflowEntity } from './types';
 
@@ -18,10 +19,21 @@ interface MachineConfig<E extends WorkflowEntity, S extends string> {
   stateOf: (entity: E) => S;
   /** Declared transitions keyed `from->to`. Undeclared pairs are refused. */
   transitions: Partial<Record<string, readonly Guard<E>[]>>;
-  /** Applies the state change inside the audited transaction. */
-  persist: (tx: Tx, entity: E, to: S, context: unknown) => Promise<E>;
+  /**
+   * Applies the state change inside the audited transaction. `from` is the state the guards
+   * were evaluated against; pass it to the mutation so the write is a compare-and-swap.
+   */
+  persist: (args: PersistArgs<E, S>) => Promise<E>;
   /** Audit action name; defaults to `<entityType>.<to>`. */
   action?: (to: S) => string;
+}
+
+export interface PersistArgs<E, S> {
+  tx: Tx;
+  entity: E;
+  from: S;
+  to: S;
+  context: unknown;
 }
 
 export interface TransitionRequest<E, S> {
@@ -72,20 +84,36 @@ export function defineMachine<E extends WorkflowEntity, S extends string>(
         .filter((to) => evaluate({ actor, entity, to, context }).ok);
     },
     async transition(request) {
-      const transition = key(config.stateOf(request.entity), request.to);
+      const from = config.stateOf(request.entity);
+      const transition = key(from, request.to);
       const result = evaluate(request);
       if (!result.ok) throw new TransitionRefusedError(result.reason, transition);
       const action = config.action?.(request.to) ?? `${config.entityType}.${request.to}`;
-      return audited(
-        {
-          actor: request.actor,
-          action,
-          entityType: config.entityType,
-          entityId: request.entity.id,
-          before: request.entity,
-        },
-        (tx) => config.persist(tx, request.entity, request.to, request.context),
-      );
+      try {
+        return await audited(
+          {
+            actor: request.actor,
+            action,
+            entityType: config.entityType,
+            entityId: request.entity.id,
+            before: request.entity,
+          },
+          (tx) =>
+            config.persist({
+              tx,
+              entity: request.entity,
+              from,
+              to: request.to,
+              context: request.context,
+            }),
+        );
+      } catch (error) {
+        // The guards ran against an entity read outside the transaction; another writer moved
+        // it first, so the transaction rolled back and no audit entry was written.
+        if (error instanceof StaleStateError)
+          throw new TransitionRefusedError('stale_state', transition);
+        throw error;
+      }
     },
   };
 }
