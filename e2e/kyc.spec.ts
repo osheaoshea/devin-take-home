@@ -1,8 +1,7 @@
 import { expect, test, type Page } from '@playwright/test';
 import { WEBHOOK_SECRET } from '../playwright.config';
 
-const FOUR_EYES_COPY =
-  'You escalated this case, so a different manager must resolve it.';
+const FOUR_EYES_COPY = 'You escalated this case, so a different manager must resolve it.';
 
 async function signIn(page: Page, email: string): Promise<void> {
   await page.goto('/signin');

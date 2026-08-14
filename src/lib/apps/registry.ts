@@ -44,7 +44,7 @@ export const APP_REGISTRY: readonly AppDescriptor[] = [
     permission: 'refunds.read',
     rolesLabel: 'support_agent, finance_manager, viewer',
     countBadge: async (actor) => `${await countRefundsByState(actor, 'requested')} open`,
-    available: false,
+    available: true,
   },
   {
     key: 'flags',
