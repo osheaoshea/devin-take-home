@@ -33,7 +33,7 @@ export const APP_REGISTRY: readonly AppDescriptor[] = [
     permission: 'kyc.read',
     rolesLabel: 'kyc_analyst, kyc_manager, viewer',
     countBadge: async (actor) => `${await countKycCasesByState(actor, 'pending')} pending`,
-    available: false,
+    available: true,
   },
   {
     key: 'refunds',
