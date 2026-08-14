@@ -24,6 +24,8 @@ jobs:
       DATABASE_URL: postgres://postgres:postgres@localhost:5432/internal_tools
       TEST_DATABASE_URL: postgres://postgres:postgres@localhost:5432/internal_tools_test
       AUTH_SECRET: ci-secret
+      # Auth.js refuses to serve an untrusted Host in production builds.
+      AUTH_URL: http://localhost:3000
       DEMO_AUTH_ENABLED: 'true'
       PROVIDER_MODE: mock
     steps:
