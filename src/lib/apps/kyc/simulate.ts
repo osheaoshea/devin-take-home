@@ -1,5 +1,6 @@
 import { randomUUID } from 'node:crypto';
 import { onfidoCheckPayloadSchema, type OnfidoCheckPayload } from '@/lib/providers';
+import { now } from '@/lib/time';
 
 const APPLICANTS = [
   { first_name: 'Ada', last_name: 'Lovelace', dob: '1815-12-10', country: 'GB' },
@@ -14,7 +15,7 @@ const DOCUMENT_TYPES = ['passport', 'driving_licence', 'national_id'] as const;
  * The payload the demo's "simulate new applicant" button sends. Schema and data are real; only
  * the sender is fake, so it goes through the same validation as a genuine provider callback.
  */
-export function simulatedCheckPayload(seed = Date.now()): OnfidoCheckPayload {
+export function simulatedCheckPayload(seed = now().getTime()): OnfidoCheckPayload {
   const applicant = APPLICANTS[seed % APPLICANTS.length] ?? APPLICANTS[0];
   const riskScore = seed % 101;
   return onfidoCheckPayloadSchema.parse({

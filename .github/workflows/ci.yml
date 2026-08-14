@@ -28,6 +28,7 @@ jobs:
       AUTH_URL: http://localhost:3000
       DEMO_AUTH_ENABLED: 'true'
       PROVIDER_MODE: mock
+      KYC_WEBHOOK_SECRET: ci-webhook-secret
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4

@@ -28,8 +28,8 @@ export type KycTransitionTarget = z.infer<typeof targetSchema>;
 
 /**
  * Moves a case through the machine, which evaluates the guards and writes the audit entry.
- * A refusal is not a crash the reviewer should see: it comes back in the URL and renders
- * inline next to the action that was blocked.
+ * A refusal is not a crash the reviewer should see: it comes back in the URL as `<to>:<reason>`
+ * and renders as a sentence under the one action that was blocked.
  */
 export async function transitionKycCaseAction(
   rawTarget: KycTransitionTarget,
@@ -43,7 +43,7 @@ export async function transitionKycCaseAction(
 
   const expected = reasonCodesFor(target.to);
   if (expected.length > 0 && (reasonCode === undefined || !expected.includes(reasonCode))) {
-    redirect(queueHref(target.returnTo, target.caseId, 'invalid_reason_code'));
+    redirect(queueHref(target.returnTo, target.caseId, `${target.to}:invalid_reason_code`));
   }
 
   let refusal: string | undefined;
@@ -60,7 +60,13 @@ export async function transitionKycCaseAction(
   }
 
   revalidatePath('/kyc');
-  redirect(queueHref(target.returnTo, target.caseId, refusal));
+  redirect(
+    queueHref(
+      target.returnTo,
+      target.caseId,
+      refusal === undefined ? undefined : `${target.to}:${refusal}`,
+    ),
+  );
 }
 
 /** Demo-only: replays a provider callback, so the queue has a fresh case to work. */

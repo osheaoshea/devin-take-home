@@ -1,7 +1,10 @@
+import clsx from 'clsx';
 import {
   declaredTargets,
   kycMachine,
+  parseActionError,
   reasonCodesFor,
+  refusalCopy,
   watchlistHitsOf,
   type KycState,
 } from '@/lib/apps/kyc';
@@ -39,6 +42,7 @@ export function CaseDrawer({
 }) {
   const sla = slaBadge(kycCase.slaDueAt);
   const hits = watchlistHitsOf(kycCase);
+  const serverRefusal = parseActionError(error);
 
   return (
     <DetailDrawer
@@ -118,32 +122,47 @@ export function CaseDrawer({
         ) : (
           <div className="space-y-4">
             {declaredTargets(kycCase.state).map((to) => {
+              const label = ACTION_LABELS[to] ?? to;
               const decision = kycMachine.can({ actor, entity: kycCase, to });
-              const codes = reasonCodesFor(to);
-              if (!decision.ok) {
-                return (
-                  <div key={to} className="rounded border border-line bg-canvas p-3">
-                    <p className="font-medium">{ACTION_LABELS[to] ?? to}</p>
-                    <p className="font-mono text-xs text-red-600" role="alert">
-                      {decision.reason}
-                    </p>
-                  </div>
-                );
-              }
+              const refusal = decision.ok
+                ? serverRefusal?.to === to
+                  ? serverRefusal.reason
+                  : undefined
+                : decision.reason;
               return (
-                <div key={to} className="rounded border border-line p-3">
-                  <CaseActionForm
-                    label={ACTION_LABELS[to] ?? to}
-                    target={to}
-                    reasonCodes={codes}
-                    tone={actionTone(to)}
-                    action={transitionKycCaseAction.bind(null, {
-                      caseId: kycCase.id,
-                      to,
-                      returnTo,
-                    })}
-                    error={error}
-                  />
+                <div
+                  key={to}
+                  data-testid={`kyc-action-${to}`}
+                  className={clsx('rounded border border-line p-3', !decision.ok && 'bg-canvas')}
+                >
+                  {decision.ok ? (
+                    <CaseActionForm
+                      label={label}
+                      target={to}
+                      reasonCodes={reasonCodesFor(to)}
+                      tone={actionTone(to)}
+                      idPrefix={`kyc-${to}`}
+                      action={transitionKycCaseAction.bind(null, {
+                        caseId: kycCase.id,
+                        to,
+                        returnTo,
+                      })}
+                      error={refusal === undefined ? undefined : refusalCopy(refusal)}
+                    />
+                  ) : (
+                    <button
+                      type="button"
+                      disabled
+                      className="rounded bg-line px-3 py-1.5 text-sm font-medium text-muted disabled:cursor-not-allowed"
+                    >
+                      {label}
+                    </button>
+                  )}
+                  {!decision.ok && refusal !== undefined ? (
+                    <p className="mt-2 text-sm text-red-700" role="alert">
+                      {refusalCopy(refusal)}
+                    </p>
+                  ) : null}
                 </div>
               );
             })}

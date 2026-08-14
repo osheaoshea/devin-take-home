@@ -74,8 +74,10 @@ An app is a set of **slice files** plus one registry entry. Foundation logic sta
 
 - Server components and server actions by default; client components only where interactivity requires.
 - Zod-validate every external input (forms, webhooks, route params, `searchParams`).
-- Guard refusal reasons (`missing_permission:kyc.approve`, `stale_state`, …) pass through untranslated and
-  render inline next to the blocked action.
+- Guard refusal reasons (`missing_permission:kyc.approve`, `stale_state`, …) travel untranslated and
+  render inline next to the blocked action, which stays visible but disabled. The app maps them to a
+  sentence at the presentation edge (e.g. `lib/apps/kyc/refusal-copy.ts`) and falls back to the raw code,
+  so a new guard is never silently swallowed.
 - Exact versions in `package.json`, no caret ranges.
 
 ## Testing

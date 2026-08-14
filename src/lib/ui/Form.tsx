@@ -1,7 +1,7 @@
 'use client';
 
 import clsx from 'clsx';
-import { useState } from 'react';
+import { useId, useState } from 'react';
 import type { z } from 'zod';
 
 export type SubmitTone = 'accent' | 'success' | 'warning' | 'danger';
@@ -32,6 +32,7 @@ export function Form({
   action,
   submitLabel = 'Save',
   submitTone = 'accent',
+  idPrefix,
   error,
 }: {
   schema: z.ZodType<unknown>;
@@ -39,9 +40,14 @@ export function Form({
   action: (formData: FormData) => void | Promise<void>;
   submitLabel?: string;
   submitTone?: SubmitTone;
+  /** Namespaces the field ids so sibling forms posting the same field names keep distinct labels. */
+  idPrefix?: string;
   error?: string;
 }) {
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
+  const generatedPrefix = useId();
+  const prefix = idPrefix ?? generatedPrefix;
+  const fieldId = (name: string): string => `${prefix}-${name}`;
 
   return (
     <form
@@ -66,12 +72,12 @@ export function Form({
     >
       {fields.map((field) => (
         <div key={field.name} className="space-y-1">
-          <label className="block text-sm font-medium" htmlFor={field.name}>
+          <label className="block text-sm font-medium" htmlFor={fieldId(field.name)}>
             {field.label}
           </label>
           {field.type === 'select' ? (
             <select
-              id={field.name}
+              id={fieldId(field.name)}
               name={field.name}
               defaultValue={field.defaultValue}
               className="w-full rounded border border-line bg-surface px-2 py-1.5 text-sm"
@@ -84,7 +90,7 @@ export function Form({
             </select>
           ) : (
             <input
-              id={field.name}
+              id={fieldId(field.name)}
               name={field.name}
               type={field.type ?? 'text'}
               placeholder={field.placeholder}

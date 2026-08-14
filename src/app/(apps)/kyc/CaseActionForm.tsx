@@ -15,6 +15,7 @@ export function CaseActionForm({
   target,
   reasonCodes,
   tone,
+  idPrefix,
   action,
   error,
 }: {
@@ -23,6 +24,7 @@ export function CaseActionForm({
   target: string;
   reasonCodes: readonly string[];
   tone: SubmitTone;
+  idPrefix: string;
   action: (formData: FormData) => void | Promise<void>;
   error?: string;
 }) {
@@ -45,6 +47,7 @@ export function CaseActionForm({
       action={action}
       submitLabel={label}
       submitTone={tone}
+      idPrefix={idPrefix}
       error={error}
     />
   );
