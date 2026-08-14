@@ -55,6 +55,11 @@ Project context: `technical-context.md`. Build specs: `specs/`. **One session = 
 
 An app is a set of **slice files** plus one registry entry. Foundation logic stays untouched:
 
+- **Layering:** per-app domain logic lives in `lib/apps/<app>/`, data slices in
+  `lib/db/{schema,mutations,queries,seed}/<app>.ts` and pages in `app/(apps)/<app>/`; the foundation
+  modules at the top of `lib/` (`lib/audit`, `lib/auth`, `lib/rbac`, `lib/workflow`, `lib/time`, `lib/ui`, …)
+  are never app-specific.
+- `lib/apps/<app>/` — the app's own domain logic: its `lib/workflow` machine, reason codes, SLA maths.
 - `lib/db/schema/<app>.ts` — its tables and enums, one export line in the schema barrel.
 - `lib/db/queries/<app>.ts` — accessors, actor first, one export line in the query barrel.
 - `lib/db/mutations/<app>.ts` — a `<App>Mutations` interface plus its factory; add it to the `Tx`

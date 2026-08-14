@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { DUE_SOON_HOURS, KYC_STATES } from '@/lib/kyc';
+import { DUE_SOON_HOURS, KYC_STATES } from '@/lib/apps/kyc';
 import { now } from '@/lib/time';
 
 export const PAGE_SIZE = 20;

@@ -1,7 +1,17 @@
 'use client';
 
+import clsx from 'clsx';
 import { useState } from 'react';
 import type { z } from 'zod';
+
+export type SubmitTone = 'accent' | 'success' | 'warning' | 'danger';
+
+const SUBMIT_TONE_CLASSES: Record<SubmitTone, string> = {
+  accent: 'bg-accent',
+  success: 'bg-green-600',
+  warning: 'bg-amber-600',
+  danger: 'bg-red-600',
+};
 
 export interface FieldConfig {
   name: string;
@@ -21,12 +31,14 @@ export function Form({
   fields,
   action,
   submitLabel = 'Save',
+  submitTone = 'accent',
   error,
 }: {
   schema: z.ZodType<unknown>;
   fields: FieldConfig[];
   action: (formData: FormData) => void | Promise<void>;
   submitLabel?: string;
+  submitTone?: SubmitTone;
   error?: string;
 }) {
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
@@ -94,7 +106,10 @@ export function Form({
       ) : null}
       <button
         type="submit"
-        className="rounded bg-accent px-3 py-1.5 text-sm font-medium text-white hover:opacity-90"
+        className={clsx(
+          'rounded px-3 py-1.5 text-sm font-medium text-white hover:opacity-90',
+          SUBMIT_TONE_CLASSES[submitTone],
+        )}
       >
         {submitLabel}
       </button>

@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import { signOutAction } from '@/app/actions';
+import { documentUrlsOf, KYC_STATES } from '@/lib/apps/kyc';
 import { readAuditLog, type AuditEntry } from '@/lib/audit';
 import { requireActor } from '@/lib/auth';
 import {
@@ -8,7 +9,6 @@ import {
   selectKycCases,
   type KycCaseRow,
 } from '@/lib/db/queries';
-import { documentUrlsOf, KYC_STATES } from '@/lib/kyc';
 import { kycProvider } from '@/lib/providers';
 import { can, type Actor } from '@/lib/rbac';
 import { enforcePermission } from '@/lib/rbac/enforce';

@@ -1,17 +1,17 @@
-import type { AuditEntry } from '@/lib/audit';
-import type { KycCaseRow } from '@/lib/db/queries';
 import {
   declaredTargets,
   kycMachine,
   reasonCodesFor,
   watchlistHitsOf,
   type KycState,
-} from '@/lib/kyc';
+} from '@/lib/apps/kyc';
+import type { AuditEntry } from '@/lib/audit';
+import type { KycCaseRow } from '@/lib/db/queries';
 import type { Actor } from '@/lib/rbac';
 import { DetailDrawer, JsonDiff, StatusBadge } from '@/lib/ui';
 import { transitionKycCaseAction } from './actions';
 import { CaseActionForm } from './CaseActionForm';
-import { slaBadge, stateTone } from './presentation';
+import { actionTone, slaBadge, stateTone } from './presentation';
 
 const ACTION_LABELS: Partial<Record<KycState, string>> = {
   in_review: 'Claim case',
@@ -136,6 +136,7 @@ export function CaseDrawer({
                     label={ACTION_LABELS[to] ?? to}
                     target={to}
                     reasonCodes={codes}
+                    tone={actionTone(to)}
                     action={transitionKycCaseAction.bind(null, {
                       caseId: kycCase.id,
                       to,

@@ -1,7 +1,7 @@
 'use client';
 
 import { z } from 'zod';
-import { Form } from '@/lib/ui/Form';
+import { Form, type SubmitTone } from '@/lib/ui/Form';
 
 const reasonCodeSchema = z.object({ reasonCode: z.string().min(1, 'Pick a reason code.') });
 const noFieldsSchema = z.object({});
@@ -14,6 +14,7 @@ export function CaseActionForm({
   label,
   target,
   reasonCodes,
+  tone,
   action,
   error,
 }: {
@@ -21,6 +22,7 @@ export function CaseActionForm({
   /** The state being moved to, which is how the reason-code field is titled. */
   target: string;
   reasonCodes: readonly string[];
+  tone: SubmitTone;
   action: (formData: FormData) => void | Promise<void>;
   error?: string;
 }) {
@@ -42,6 +44,7 @@ export function CaseActionForm({
       }
       action={action}
       submitLabel={label}
+      submitTone={tone}
       error={error}
     />
   );

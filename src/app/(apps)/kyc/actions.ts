@@ -3,15 +3,15 @@
 import { revalidatePath } from 'next/cache';
 import { notFound, redirect } from 'next/navigation';
 import { z } from 'zod';
-import { requireActor } from '@/lib/auth';
-import { findKycCaseById } from '@/lib/db/queries';
 import {
   ingestKycCheck,
   KYC_STATES,
   kycMachine,
   reasonCodesFor,
   simulatedCheckPayload,
-} from '@/lib/kyc';
+} from '@/lib/apps/kyc';
+import { requireActor } from '@/lib/auth';
+import { findKycCaseById } from '@/lib/db/queries';
 import { requirePermission } from '@/lib/rbac';
 import { TransitionRefusedError } from '@/lib/workflow';
 

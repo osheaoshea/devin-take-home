@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { ingestKycCheck } from '@/lib/kyc';
+import { ingestKycCheck } from '@/lib/apps/kyc';
 import { onfidoCheckPayloadSchema } from '@/lib/providers';
 
 // Drizzle over TCP needs the Node runtime.
