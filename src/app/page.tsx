@@ -19,7 +19,6 @@ export default async function HubPage() {
     name: app.cardTitle,
     description: app.description,
     permission: app.permission,
-    roles: app.rolesLabel,
     badge: badges[index] ?? '',
     available: app.available,
   }));
@@ -50,13 +49,12 @@ export default async function HubPage() {
                 </StatusBadge>
               </div>
               <p className="text-sm text-muted">{card.description}</p>
-              <p className="text-xs text-muted">Roles: {card.roles}</p>
               {enterable ? (
-                <Link href={card.href} className="text-sm text-accent underline">
+                <Link href={card.href} className="mt-auto text-sm text-accent underline">
                   Open
                 </Link>
               ) : (
-                <span className="text-xs text-muted">
+                <span className="mt-auto text-xs text-muted">
                   {permitted ? 'Ships with its own spec' : 'You do not have a role for this tool'}
                 </span>
               )}

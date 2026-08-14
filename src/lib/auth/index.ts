@@ -86,7 +86,17 @@ export async function signOutDemoUser(): Promise<void> {
   const name = sessionCookieName();
   const token = store.get(name)?.value;
   if (token !== undefined) {
-    await getDb().delete(sessions).where(eq(sessions.sessionToken, token));
+    await revokeDemoSession(token);
     store.delete(name);
   }
+}
+
+/** Deletes one session row, for a session replaced by another rather than signed out. */
+export async function revokeDemoSession(token: string): Promise<void> {
+  await getDb().delete(sessions).where(eq(sessions.sessionToken, token));
+}
+
+/** The token of the request's session, if it carries one. */
+export async function currentSessionToken(): Promise<string | undefined> {
+  return (await cookies()).get(sessionCookieName())?.value;
 }
