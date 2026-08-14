@@ -24,7 +24,7 @@ async function openFlag(page: Page, key: string): Promise<string> {
 test('an engineer toggles staging and kills a flag, and both changes are in its history', async ({
   page,
 }) => {
-  await signIn(page, 'engineer@demo.co');
+  await signIn(page, 'manager1@demo.co');
   const flagId = await openFlag(page, 'checkout-v2');
 
   const staging = page.getByTestId('flag-env-staging');
@@ -47,7 +47,7 @@ test('an engineer toggles staging and kills a flag, and both changes are in its 
     await expect(page.getByTestId(`flag-env-${environment}`).getByText(/^off/)).toBeVisible();
   }
 
-  // An engineer holds no audit.read, so the trail is read back by an actor who does.
+  // The engineer role holds no audit.read, so the trail is read back by an actor who does.
   await page.goto('/flags');
   await page.getByRole('button', { name: 'Sign out' }).click();
   await signIn(page, 'admin@demo.co');
@@ -56,7 +56,7 @@ test('an engineer toggles staging and kills a flag, and both changes are in its 
   const history = page.getByTestId('flag-history');
   await expect(history.getByText('flag.kill_switch')).toHaveCount(1);
   await expect(history.getByText(`flag_state.${before === 'off' ? 'on' : 'off'}`)).toHaveCount(1);
-  await expect(history).toContainText('engineer@demo.co');
+  await expect(history).toContainText('manager1@demo.co');
 });
 
 test('a viewer sees every flag control disabled and explained in prose', async ({ page }) => {
