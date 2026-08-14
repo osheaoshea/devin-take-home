@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { signOutAction } from '@/app/actions';
 import { getActor } from '@/lib/auth';
 import { PageShell } from '@/lib/ui';
 
@@ -31,7 +32,12 @@ export default async function Forbidden() {
   }
 
   return (
-    <PageShell actor={actor} title="Not permitted" description="403 — insufficient permissions.">
+    <PageShell
+      actor={actor}
+      title="Not permitted"
+      description="403 — insufficient permissions."
+      signOutAction={signOutAction}
+    >
       {body}
     </PageShell>
   );

@@ -39,6 +39,12 @@ export default tseslint.config(
         },
       ],
       '@typescript-eslint/no-explicit-any': 'error',
+      // `interface Tx extends KycMutations {}` is the per-app mutation merge point: apps add
+      // themselves to the extends clause, so a single extend with no members is deliberate.
+      '@typescript-eslint/no-empty-object-type': [
+        'error',
+        { allowInterfaces: 'with-single-extends' },
+      ],
       '@typescript-eslint/consistent-type-imports': ['error', { fixStyle: 'inline-type-imports' }],
       '@typescript-eslint/no-unused-vars': ['error', { argsIgnorePattern: '^_' }],
       '@typescript-eslint/no-misused-promises': ['error', { checksVoidReturn: false }],

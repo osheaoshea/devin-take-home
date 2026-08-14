@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { signOutAction } from '@/app/actions';
 import { readAuditLogPage, type AuditEntry } from '@/lib/audit';
 import { requireActor } from '@/lib/auth';
 import { enforcePermission } from '@/lib/rbac/enforce';
@@ -43,6 +44,7 @@ export default async function AuditPage({
       actor={actor}
       title="Audit log"
       description="Append-only record of every mutation, with the roles the actor held at the time."
+      signOutAction={signOutAction}
     >
       <form className="mb-4 flex flex-wrap items-end gap-3 rounded border border-line bg-surface p-4">
         <Field name="action" label="Action" defaultValue={filter.action} />

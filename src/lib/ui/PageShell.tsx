@@ -1,23 +1,19 @@
 import Link from 'next/link';
-import { signOutAction } from '@/app/actions';
+import { APP_REGISTRY } from '@/lib/apps/registry';
 import { can, type Actor } from '@/lib/rbac';
 import { StatusBadge } from './StatusBadge';
-
-const APPS = [
-  { href: '/kyc', label: 'KYC', permission: 'kyc.read' },
-  { href: '/refunds', label: 'Refunds', permission: 'refunds.read' },
-  { href: '/flags', label: 'Flags', permission: 'flags.read' },
-] as const;
 
 export function PageShell({
   actor,
   title,
   description,
+  signOutAction,
   children,
 }: {
   actor: Actor;
   title: string;
   description?: string;
+  signOutAction: () => Promise<void>;
   children: React.ReactNode;
 }) {
   return (
@@ -28,9 +24,9 @@ export function PageShell({
             Internal Tools
           </Link>
           <nav className="flex items-center gap-4 text-sm text-muted">
-            {APPS.filter((app) => can(actor, app.permission)).map((app) => (
+            {APP_REGISTRY.filter((app) => can(actor, app.permission)).map((app) => (
               <Link key={app.href} href={app.href} className="hover:text-ink">
-                {app.label}
+                {app.name}
               </Link>
             ))}
             {can(actor, 'audit.read') ? (

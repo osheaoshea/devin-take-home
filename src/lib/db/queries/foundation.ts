@@ -1,16 +1,7 @@
 import { and, count, desc, eq, gte, lte, type SQL } from 'drizzle-orm';
 import { requirePermission, type Actor } from '@/lib/rbac';
-import { getDb } from './client';
-import {
-  auditLog,
-  flags,
-  kycCases,
-  refunds,
-  users,
-  type AuditLogRow,
-  type KycCase,
-  type Refund,
-} from './schema';
+import { getDb } from '../client';
+import { auditLog, users, type AuditLogRow } from '../schema';
 
 export interface AuditLogFilter {
   actorId?: string;
@@ -70,34 +61,4 @@ function auditLogWhere(filter: AuditLogFilter): SQL | undefined {
   if (filter.from !== undefined) conditions.push(gte(auditLog.createdAt, filter.from));
   if (filter.to !== undefined) conditions.push(lte(auditLog.createdAt, filter.to));
   return conditions.length > 0 ? and(...conditions) : undefined;
-}
-
-export async function findKycCaseById(actor: Actor, caseId: string): Promise<KycCase | undefined> {
-  requirePermission(actor, 'kyc.read');
-  const [row] = await getDb().select().from(kycCases).where(eq(kycCases.id, caseId)).limit(1);
-  return row;
-}
-
-export async function countKycCasesByState(actor: Actor, state: KycCase['state']): Promise<number> {
-  requirePermission(actor, 'kyc.read');
-  const [row] = await getDb()
-    .select({ total: count() })
-    .from(kycCases)
-    .where(eq(kycCases.state, state));
-  return row?.total ?? 0;
-}
-
-export async function countRefundsByState(actor: Actor, state: Refund['state']): Promise<number> {
-  requirePermission(actor, 'refunds.read');
-  const [row] = await getDb()
-    .select({ total: count() })
-    .from(refunds)
-    .where(eq(refunds.state, state));
-  return row?.total ?? 0;
-}
-
-export async function countFlags(actor: Actor): Promise<number> {
-  requirePermission(actor, 'flags.read');
-  const [row] = await getDb().select({ total: count() }).from(flags);
-  return row?.total ?? 0;
 }
