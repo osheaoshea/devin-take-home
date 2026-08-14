@@ -2,7 +2,7 @@
 
 import { redirect } from 'next/navigation';
 import { z } from 'zod';
-import { signInAsDemoUser, signOutDemoUser } from '@/lib/auth';
+import { signInAsDemoUser, signOutDemoUser, TooManyAttemptsError } from '@/lib/auth';
 
 const demoSignInSchema = z.object({
   email: z.string().email(),
@@ -14,8 +14,10 @@ export async function demoSignInAction(formData: FormData): Promise<void> {
   if (!parsed.success) redirect('/signin?error=invalid');
   try {
     await signInAsDemoUser(parsed.data.email, parsed.data.password);
-  } catch {
-    redirect('/signin?error=rejected');
+  } catch (error) {
+    redirect(
+      error instanceof TooManyAttemptsError ? '/signin?error=throttled' : '/signin?error=rejected',
+    );
   }
   redirect('/');
 }

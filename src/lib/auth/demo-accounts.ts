@@ -62,6 +62,25 @@ export const DEMO_ACCOUNTS: DemoAccount[] = [
   },
 ];
 
+const LOCAL_HOSTNAMES = new Set(['localhost', '127.0.0.1', '::1', '0.0.0.0']);
+
+/**
+ * The mock IdP hands out a fixed password for seeded accounts, admin included, so the flag alone
+ * is not enough: an environment that inherits `DEMO_AUTH_ENABLED=true` must still refuse it. Demo
+ * sign-in is therefore confined to a locally served app unless a second flag opts a throwaway
+ * hosted demo back in.
+ */
+function servedLocally(): boolean {
+  const url = process.env.AUTH_URL ?? process.env.NEXTAUTH_URL;
+  if (url === undefined || url === '') return process.env.NODE_ENV !== 'production';
+  try {
+    return LOCAL_HOSTNAMES.has(new URL(url).hostname.replace(/^\[|\]$/g, ''));
+  } catch {
+    return false;
+  }
+}
+
 export function demoAuthEnabled(): boolean {
-  return process.env.DEMO_AUTH_ENABLED === 'true';
+  if (process.env.DEMO_AUTH_ENABLED !== 'true') return false;
+  return servedLocally() || process.env.DEMO_AUTH_ALLOW_REMOTE_HOST === 'true';
 }

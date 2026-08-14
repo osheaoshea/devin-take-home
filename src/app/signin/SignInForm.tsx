@@ -11,6 +11,7 @@ const schema = z.object({
 const ERRORS: Record<string, string> = {
   invalid: 'Check the email and password.',
   rejected: 'Those demo credentials were rejected.',
+  throttled: 'Too many failed attempts. Wait a few minutes and try again.',
 };
 
 /**

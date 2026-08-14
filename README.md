@@ -12,6 +12,7 @@ real audit behaviour. External services (Onfido, Stripe, Entra) are mocked at do
 ```bash
 pnpm install
 cp .env.example .env
+# set DEMO_AUTH_ENABLED=true in .env to use the mock IdP locally
 docker compose up -d          # postgres:16 on :5432
 pnpm db:migrate               # apply committed Drizzle migrations
 pnpm db:seed                  # demo accounts + realistic data
@@ -37,6 +38,11 @@ that database itself.
 
 Password for all accounts: `demo`. Sign-in is a mock IdP that issues the same Entra-style group
 claims the real tenant would, so role resolution is exercised end to end.
+
+It is off by default (`DEMO_AUTH_ENABLED=false`) and refused outright unless the app is served from
+localhost, so an environment that inherits the flag still cannot be signed into with the fixed demo
+password; a throwaway hosted demo has to opt back in with `DEMO_AUTH_ALLOW_REMOTE_HOST=true`. Failed
+attempts are throttled per client and account.
 
 | Email               | Groups → roles                                  |
 | ------------------- | ----------------------------------------------- |

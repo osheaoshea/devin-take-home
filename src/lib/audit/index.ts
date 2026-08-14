@@ -1,11 +1,17 @@
 import { getDb } from '@/lib/db/client';
 import { mutations, type DrizzleTx, type Tx } from '@/lib/db/mutations';
-import { selectAuditLog, type AuditEntry, type AuditLogFilter } from '@/lib/db/queries';
+import {
+  countAuditLog,
+  selectAuditLog,
+  type AuditEntry,
+  type AuditLogFilter,
+  type AuditLogPage,
+} from '@/lib/db/queries';
 import { auditLog } from '@/lib/db/schema';
 import type { Actor } from '@/lib/rbac';
 
 export type { Tx } from '@/lib/db/mutations';
-export type { AuditEntry, AuditLogFilter } from '@/lib/db/queries';
+export type { AuditEntry, AuditLogFilter, AuditLogPage } from '@/lib/db/queries';
 
 export interface AuditedOptions<T> {
   actor: Actor;
@@ -44,4 +50,16 @@ export async function audited<T>(
 
 export function readAuditLog(actor: Actor, filter: AuditLogFilter): Promise<AuditEntry[]> {
   return selectAuditLog(actor, filter);
+}
+
+/** One page of the log plus the unpaged total, so the pager can reach the whole history. */
+export async function readAuditLogPage(
+  actor: Actor,
+  filter: AuditLogFilter,
+): Promise<AuditLogPage> {
+  const [entries, total] = await Promise.all([
+    selectAuditLog(actor, filter),
+    countAuditLog(actor, filter),
+  ]);
+  return { entries, total };
 }

@@ -1,22 +1,9 @@
 import Link from 'next/link';
-import { z } from 'zod';
-import { readAuditLog, type AuditEntry } from '@/lib/audit';
+import { readAuditLogPage, type AuditEntry } from '@/lib/audit';
 import { requireActor } from '@/lib/auth';
 import { enforcePermission } from '@/lib/rbac/enforce';
 import { DataTable, DetailDrawer, JsonDiff, PageShell, StatusBadge } from '@/lib/ui';
-
-const filterSchema = z.object({
-  actorId: z.string().uuid().optional(),
-  entityType: z.string().min(1).optional(),
-  entityId: z.string().min(1).optional(),
-  action: z.string().min(1).optional(),
-  from: z.coerce.date().optional(),
-  to: z.coerce.date().optional(),
-  page: z.coerce.number().int().min(1).default(1),
-  entry: z.string().uuid().optional(),
-});
-
-const PAGE_SIZE = 25;
+import { auditFilterSchema, PAGE_SIZE } from './filter';
 
 export default async function AuditPage({
   searchParams,
@@ -32,9 +19,12 @@ export default async function AuditPage({
       value === undefined || value === '' ? [] : [[key, Array.isArray(value) ? value[0] : value]],
     ),
   );
-  const filter = filterSchema.parse(params);
-  const entries = await readAuditLog(actor, { ...filter, limit: 500 });
-  const pageEntries = entries.slice((filter.page - 1) * PAGE_SIZE, filter.page * PAGE_SIZE);
+  const filter = auditFilterSchema.parse(params);
+  const { entries, total } = await readAuditLogPage(actor, {
+    ...filter,
+    limit: PAGE_SIZE,
+    offset: (filter.page - 1) * PAGE_SIZE,
+  });
   const selected = entries.find((entry) => entry.id === filter.entry);
 
   const query: Record<string, string | undefined> = {
@@ -44,6 +34,8 @@ export default async function AuditPage({
     action: filter.action,
     from: params.from,
     to: params.to,
+    // Keeps the position in the log when opening or closing an entry; the pager overrides it.
+    page: filter.page > 1 ? String(filter.page) : undefined,
   };
 
   return (
@@ -72,11 +64,11 @@ export default async function AuditPage({
       <DataTable<AuditEntry>
         basePath="/admin/audit"
         query={query}
-        rows={pageEntries}
+        rows={entries}
         rowHref={(entry) =>
           `/admin/audit?${new URLSearchParams({ ...cleaned(query), entry: entry.id }).toString()}`
         }
-        page={{ index: filter.page, size: PAGE_SIZE, total: entries.length }}
+        page={{ index: filter.page, size: PAGE_SIZE, total }}
         emptyMessage="No audit entries match this filter."
         columns={[
           {

@@ -20,6 +20,13 @@ export interface AuditLogFilter {
   from?: Date;
   to?: Date;
   limit?: number;
+  offset?: number;
+}
+
+export interface AuditLogPage {
+  entries: AuditEntry[];
+  /** Total matching the filter, ignoring limit/offset, so the pager can size itself. */
+  total: number;
 }
 
 export interface AuditEntry extends AuditLogRow {
@@ -32,6 +39,29 @@ export interface AuditEntry extends AuditLogRow {
  */
 export async function selectAuditLog(actor: Actor, filter: AuditLogFilter): Promise<AuditEntry[]> {
   requirePermission(actor, 'audit.read');
+  const rows = await getDb()
+    .select({ entry: auditLog, actorEmail: users.email })
+    .from(auditLog)
+    .innerJoin(users, eq(users.id, auditLog.actorId))
+    .where(auditLogWhere(filter))
+    .orderBy(desc(auditLog.createdAt))
+    .limit(filter.limit ?? 200)
+    .offset(filter.offset ?? 0);
+
+  return rows.map(({ entry, actorEmail }) => ({ ...entry, actorEmail }));
+}
+
+export async function countAuditLog(actor: Actor, filter: AuditLogFilter): Promise<number> {
+  requirePermission(actor, 'audit.read');
+  const [row] = await getDb()
+    .select({ total: count() })
+    .from(auditLog)
+    .innerJoin(users, eq(users.id, auditLog.actorId))
+    .where(auditLogWhere(filter));
+  return row?.total ?? 0;
+}
+
+function auditLogWhere(filter: AuditLogFilter): SQL | undefined {
   const conditions: SQL[] = [];
   if (filter.actorId !== undefined) conditions.push(eq(auditLog.actorId, filter.actorId));
   if (filter.entityType !== undefined) conditions.push(eq(auditLog.entityType, filter.entityType));
@@ -39,16 +69,7 @@ export async function selectAuditLog(actor: Actor, filter: AuditLogFilter): Prom
   if (filter.action !== undefined) conditions.push(eq(auditLog.action, filter.action));
   if (filter.from !== undefined) conditions.push(gte(auditLog.createdAt, filter.from));
   if (filter.to !== undefined) conditions.push(lte(auditLog.createdAt, filter.to));
-
-  const rows = await getDb()
-    .select({ entry: auditLog, actorEmail: users.email })
-    .from(auditLog)
-    .innerJoin(users, eq(users.id, auditLog.actorId))
-    .where(conditions.length > 0 ? and(...conditions) : undefined)
-    .orderBy(desc(auditLog.createdAt))
-    .limit(filter.limit ?? 200);
-
-  return rows.map(({ entry, actorEmail }) => ({ ...entry, actorEmail }));
+  return conditions.length > 0 ? and(...conditions) : undefined;
 }
 
 export async function findKycCaseById(actor: Actor, caseId: string): Promise<KycCase | undefined> {

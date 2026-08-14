@@ -1,5 +1,5 @@
 import { afterAll, beforeEach, describe, expect, it } from 'vitest';
-import { audited, readAuditLog } from '@/lib/audit';
+import { audited, readAuditLog, readAuditLogPage } from '@/lib/audit';
 import { closeDb } from '@/lib/db/client';
 import { findKycCaseById } from '@/lib/db/queries';
 import { AuthorizationError, type Actor } from '@/lib/rbac';
@@ -157,5 +157,39 @@ describe('readAuditLog', () => {
 
   it('refuses to show the log to an actor without audit.read', async () => {
     await expect(readAuditLog(analyst, {})).rejects.toThrow(AuthorizationError);
+  });
+});
+
+describe('readAuditLogPage', () => {
+  const write = (action: string, entityId: string) =>
+    audited({ actor: analyst, action, entityType: 'kyc_case', entityId }, async () => undefined);
+
+  it('pages through the whole log with offset, reporting the unpaged total', async () => {
+    for (let index = 0; index < 5; index += 1) await write(`kyc.case.step-${index}`, 'case-1');
+
+    const first = await readAuditLogPage(admin, { limit: 2, offset: 0 });
+    const last = await readAuditLogPage(admin, { limit: 2, offset: 4 });
+
+    expect(first.total).toBe(5);
+    expect(first.entries.map((entry) => entry.action)).toEqual([
+      'kyc.case.step-4',
+      'kyc.case.step-3',
+    ]);
+    expect(last.total).toBe(5);
+    expect(last.entries.map((entry) => entry.action)).toEqual(['kyc.case.step-0']);
+  });
+
+  it('counts only the entries the filter matches', async () => {
+    await write('kyc.case.claim', 'case-1');
+    await write('kyc.case.claim', 'case-2');
+    await write('kyc.case.approve', 'case-1');
+
+    const page = await readAuditLogPage(admin, { action: 'kyc.case.claim', limit: 1, offset: 0 });
+    expect(page.total).toBe(2);
+    expect(page.entries).toHaveLength(1);
+  });
+
+  it('refuses an actor without audit.read', async () => {
+    await expect(readAuditLogPage(analyst, {})).rejects.toThrow(AuthorizationError);
   });
 });
