@@ -6,59 +6,46 @@ export interface DemoAccount {
   email: string;
   password: string;
   name: string;
+  /** Short handle for the account, used by the demo switcher. */
+  label: string;
   groups: string[];
 }
 
 export const DEMO_PASSWORD = 'demo';
 
+/**
+ * The group -> role map is unchanged; these four accounts just carry different group sets. Two
+ * accounts hold the same manager groups because four-eyes and dual approval need two distinct
+ * actors with identical authority.
+ */
 export const DEMO_ACCOUNTS: DemoAccount[] = [
-  {
-    email: 'viewer@demo.co',
-    password: DEMO_PASSWORD,
-    name: 'Vera Viewer',
-    groups: ['ENTRA-Internal-Tools-Viewers'],
-  },
-  {
-    email: 'analyst@demo.co',
-    password: DEMO_PASSWORD,
-    name: 'Anna Analyst',
-    groups: ['ENTRA-KYC-Analysts'],
-  },
-  {
-    email: 'kmanager@demo.co',
-    password: DEMO_PASSWORD,
-    name: 'Kim Manager',
-    groups: ['ENTRA-KYC-Managers'],
-  },
-  {
-    email: 'agent@demo.co',
-    password: DEMO_PASSWORD,
-    name: 'Sam Agent',
-    groups: ['ENTRA-Support-Agents'],
-  },
-  {
-    email: 'fmanager@demo.co',
-    password: DEMO_PASSWORD,
-    name: 'Fay Finance',
-    groups: ['ENTRA-Finance-Managers'],
-  },
-  {
-    email: 'fmanager2@demo.co',
-    password: DEMO_PASSWORD,
-    name: 'Frank Finance',
-    groups: ['ENTRA-Finance-Managers'],
-  },
-  {
-    email: 'engineer@demo.co',
-    password: DEMO_PASSWORD,
-    name: 'Eve Engineer',
-    groups: ['ENTRA-Engineering'],
-  },
   {
     email: 'admin@demo.co',
     password: DEMO_PASSWORD,
-    name: 'Ada Admin',
+    name: 'Sarah Bennett',
+    label: 'Admin',
     groups: ['ENTRA-Platform-Admins'],
+  },
+  {
+    email: 'manager1@demo.co',
+    password: DEMO_PASSWORD,
+    name: 'David Chen',
+    label: 'Manager 1',
+    groups: ['ENTRA-KYC-Managers', 'ENTRA-Finance-Managers', 'ENTRA-Engineering'],
+  },
+  {
+    email: 'manager2@demo.co',
+    password: DEMO_PASSWORD,
+    name: 'Elena Rossi',
+    label: 'Manager 2',
+    groups: ['ENTRA-KYC-Managers', 'ENTRA-Finance-Managers', 'ENTRA-Engineering'],
+  },
+  {
+    email: 'viewer@demo.co',
+    password: DEMO_PASSWORD,
+    name: 'Tom Whitfield',
+    label: 'Viewer',
+    groups: ['ENTRA-Internal-Tools-Viewers'],
   },
 ];
 

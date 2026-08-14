@@ -23,10 +23,13 @@ pnpm build && pnpm start                    # :3000 (pnpm dev also fine)
 
 ## Signing in
 
-`/signin` is a mock IdP (real Entra ID in prod). All 8 demo accounts use password `demo`
-(`viewer@`, `analyst@`, `kmanager@`, `agent@`, `fmanager@`, `fmanager2@`, `engineer@`, `admin@demo.co`).
+`/signin` is a mock IdP (real Entra ID in prod). All 4 demo accounts use password `demo`
+(`admin@`, `manager1@`, `manager2@`, `viewer@demo.co`); the two managers are identical in authority
+so four-eyes and dual approval have a distinct second actor.
 Requires `DEMO_AUTH_ENABLED=true` in `.env`. Wrong password → `/signin?error=rejected` with an inline error.
-Sign out is in the header; it deletes the Postgres session row.
+Sign out and the demo user switcher are in the sidebar's account block; signing out deletes the
+Postgres session row, and switching deletes it and creates the next account's. The switcher is a
+`details` menu: click the account label, then click another account to switch immediately.
 
 ## Things worth knowing before you write assertions
 
@@ -45,7 +48,9 @@ Sign out is in the header; it deletes the Postgres session row.
 - Non-admins hitting `/admin/audit` get a thrown `AuthorizationError` → unstyled Next.js 500 page
   ("Application error: a server-side exception has occurred") plus a browser console error. Data is
   not leaked, but if a styled 403 has since been added, expect that instead.
-- Role indicator badges live in the header (`data-testid="role-indicator"`); nav links are filtered
+- Role indicator badges live in the sidebar account block (`data-testid="role-indicator"`), and the
+  switcher menu is `data-testid="demo-switcher"` (a `summary` plus one submit button per other
+  account); nav links are filtered
   by permission and the Audit link/Operator panel are admin-only.
 - The `/kyc`, `/refunds`, `/flags` routes are intentional placeholders until specs 01–03, so hub
   cards say "Ships with its own spec" while the nav still links to the placeholder pages.

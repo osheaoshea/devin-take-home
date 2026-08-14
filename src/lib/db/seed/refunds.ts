@@ -14,8 +14,9 @@ export async function seedRefunds(db: Database, ids: Record<string, string>): Pr
   await db.execute(sql`truncate table refunds restart identity cascade`);
 
   const random = makeRandom(11);
-  const agent = ids['agent@demo.co']!;
-  const financeManager = ids['fmanager@demo.co']!;
+  const requester = ids['manager1@demo.co']!;
+  // A different manager decides, so the settled rows show two distinct actors.
+  const decider = ids['manager2@demo.co']!;
   const seededAt = now();
 
   for (let index = 0; index < 30; index += 1) {
@@ -31,8 +32,8 @@ export async function seedRefunds(db: Database, ids: Record<string, string>): Pr
       currency: 'GBP',
       reasonCode: pick(random, REFUND_REASONS),
       state,
-      requestedById: agent,
-      decidedById: decided ? financeManager : null,
+      requestedById: requester,
+      decidedById: decided ? decider : null,
       decidedAt: decided ? decidedAt : null,
       providerRefundId: state === 'approved' ? `re_mock_${index}` : null,
     });

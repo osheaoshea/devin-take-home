@@ -29,7 +29,7 @@ audit log.
 - `lib/ui` — `PageShell`, `DataTable`, `DetailDrawer`, `Form`, `StatusBadge`, `JsonDiff` (the history diff).
 - `lib/time` — `now()`.
 - Seeded demo data: 12 flags with all three environment rows each (`lib/db/seed/flags.ts`), a mix of boolean
-  and percentage kinds; `engineer@demo.co` is the working role.
+  and percentage kinds; the manager accounts carry the working `engineer` role.
 
 ## State machine
 

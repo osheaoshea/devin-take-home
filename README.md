@@ -44,19 +44,20 @@ localhost, so an environment that inherits the flag still cannot be signed into 
 password; a throwaway hosted demo has to opt back in with `DEMO_AUTH_ALLOW_REMOTE_HOST=true`. Failed
 attempts are throttled per client and account.
 
-| Email               | Groups → roles                                  |
-| ------------------- | ----------------------------------------------- |
-| `viewer@demo.co`    | viewer                                          |
-| `analyst@demo.co`   | kyc_analyst                                     |
-| `kmanager@demo.co`  | kyc_manager                                     |
-| `agent@demo.co`     | support_agent                                   |
-| `fmanager@demo.co`  | finance_manager                                 |
-| `fmanager2@demo.co` | finance_manager (second approver for four-eyes) |
-| `engineer@demo.co`  | engineer                                        |
-| `admin@demo.co`     | admin                                           |
+| Email              | Groups → roles                                          |
+| ------------------ | ------------------------------------------------------- |
+| `admin@demo.co`    | admin                                                   |
+| `manager1@demo.co` | kyc_manager, finance_manager, engineer                  |
+| `manager2@demo.co` | kyc_manager, finance_manager, engineer (second manager) |
+| `viewer@demo.co`   | viewer                                                  |
 
-`viewer` reads every tool; every other working role reads only its own tool, so signing in as
-`engineer@demo.co` shows Flags and refuses KYC and Refunds with a 403 page.
+The two managers carry identical groups on purpose: four-eyes and dual approval need two distinct
+actors with the same authority. `admin` is the only account holding `audit.read`, so the Audit link
+and `/admin/audit` are refused for everyone else with a 403 page.
+
+The sidebar's account block carries a demo user switcher (only while `DEMO_AUTH_ENABLED` is on): it
+signs the chosen account in through the same mock-IdP path as the sign-in page, so its roles are
+resolved from group claims rather than impersonated.
 
 ## Architecture
 

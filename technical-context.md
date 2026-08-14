@@ -87,7 +87,7 @@ Enforcement at **two layers**: route/action middleware (`requireRole`, `requireP
 - `DataTable` — server-driven sort/filter/paginate, row click → drawer
 - `Form` — zod-schema-driven fields, inline errors
 - `ApprovalFlow` — shows required approvals, who approved, action buttons gated by RBAC
-- `DetailDrawer`, `StatusBadge`, `PageShell` (nav, role indicator, app switcher)
+- `DetailDrawer`, `StatusBadge`, `PageShell` (left sidebar: app nav, account block with role indicator and demo user switcher)
 
 ### 4.6 Hub page
 
@@ -97,16 +97,16 @@ Landing page (post-login): card per app (name, description, the roles that can e
 
 `pnpm db:seed` creates realistic demo data (≈40 KYC cases across states, ≈30 refunds, ≈12 flags) and these demo logins (listed in README):
 
-| Email             | Password | Fake groups → roles |
-| ----------------- | -------- | ------------------- |
-| viewer@demo.co    | demo     | viewer              |
-| analyst@demo.co   | demo     | kyc_analyst         |
-| kmanager@demo.co  | demo     | kyc_manager         |
-| agent@demo.co     | demo     | support_agent       |
-| fmanager@demo.co  | demo     | finance_manager     |
-| fmanager2@demo.co | demo     | finance_manager     |
-| engineer@demo.co  | demo     | engineer            |
-| admin@demo.co     | demo     | admin               |
+| Email            | Password | Fake groups → roles                    |
+| ---------------- | -------- | -------------------------------------- |
+| admin@demo.co    | demo     | admin                                  |
+| manager1@demo.co | demo     | kyc_manager, finance_manager, engineer |
+| manager2@demo.co | demo     | kyc_manager, finance_manager, engineer |
+| viewer@demo.co   | demo     | viewer                                 |
+
+The two managers are deliberately identical in authority: four-eyes (KYC) and dual approval
+(refunds) need a distinct second actor. A demo user switcher in the sidebar swaps between these
+accounts through the ordinary mock-IdP sign-in path.
 
 ## 5. The three apps
 
