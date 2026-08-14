@@ -1,7 +1,7 @@
 import Link from 'next/link';
 import { APP_REGISTRY } from '@/lib/apps/registry';
 import { DEMO_ACCOUNTS, demoAuthEnabled } from '@/lib/auth/demo-accounts';
-import { can, parseGroupRoleMap, resolveRoles, type Actor } from '@/lib/rbac';
+import { can, type Actor } from '@/lib/rbac';
 import { StatusBadge } from './StatusBadge';
 
 /**
@@ -28,13 +28,13 @@ export function PageShell({
 }) {
   return (
     <div className="flex min-h-screen bg-canvas text-ink">
-      <aside className="flex w-56 shrink-0 flex-col border-r border-line bg-surface">
+      <aside className="sticky top-0 flex h-screen w-56 shrink-0 flex-col border-r border-line bg-surface">
         <div className="border-b border-line px-4 py-3">
           <Link href="/" className="text-sm font-semibold">
             Internal Tools
           </Link>
         </div>
-        <nav className="flex flex-1 flex-col gap-1 p-2 text-sm text-muted">
+        <nav className="flex flex-1 flex-col gap-1 overflow-y-auto p-2 text-sm text-muted">
           {APP_REGISTRY.filter((app) => can(actor, app.permission)).map((app) => (
             <Link key={app.href} href={app.href} className="rounded px-2 py-1 hover:text-ink">
               {app.name}
@@ -46,7 +46,7 @@ export function PageShell({
             </Link>
           ) : null}
         </nav>
-        <div className="border-t border-line px-4 py-4">
+        <div className="shrink-0 border-t border-line px-4 py-4">
           <p className="text-sm font-medium">{actor.name ?? actor.email}</p>
           <p className="text-xs text-muted">{actor.email}</p>
           <span className="mt-2 flex flex-wrap gap-1" data-testid="role-indicator">
@@ -84,8 +84,9 @@ export function PageShell({
 }
 
 /**
- * Demo-only account switcher: a plain form, so it works without client JS, posting to the server
- * action that re-runs the real sign-in path for the chosen mock-IdP account.
+ * Demo-only account switcher: a `details` disclosure whose entries are submit buttons, so opening
+ * the menu and picking an account both work without client JS. Each button posts to the server
+ * action that re-runs the real sign-in path for that mock-IdP account.
  */
 function DemoUserSwitcher({
   action,
@@ -96,37 +97,32 @@ function DemoUserSwitcher({
   current: string;
   pathname?: string;
 }) {
+  const signedIn = DEMO_ACCOUNTS.find((account) => account.email === current);
   return (
-    <form action={action} className="mt-3 flex flex-col gap-1" data-testid="demo-switcher">
-      <label htmlFor="demo-switcher-email" className="text-xs text-muted">
-        Demo user
-      </label>
-      <input type="hidden" name="redirectTo" value={pathname ?? '/'} />
-      <div className="flex gap-1">
-        <select
-          id="demo-switcher-email"
-          name="email"
-          defaultValue={current}
-          className="min-w-0 flex-1 rounded border border-line bg-canvas px-1 py-1 text-xs"
-        >
-          {DEMO_ACCOUNTS.map((account) => (
-            <option key={account.email} value={account.email}>
-              {account.email} — {rolesOf(account.groups)}
-            </option>
-          ))}
-        </select>
-        <button
-          type="submit"
-          className="rounded border border-line px-2 py-1 text-xs hover:text-ink"
-        >
-          Switch
-        </button>
-      </div>
-    </form>
+    <details className="relative mt-3" data-testid="demo-switcher">
+      <summary className="flex cursor-pointer list-none items-center justify-between rounded border border-line px-2 py-1 text-xs hover:text-ink [&::-webkit-details-marker]:hidden">
+        {signedIn?.label ?? current}
+        <span aria-hidden="true" className="text-muted">
+          ▾
+        </span>
+      </summary>
+      <form
+        action={action}
+        className="absolute bottom-full left-0 z-10 mb-1 w-full overflow-hidden rounded border border-line bg-surface shadow-lg"
+      >
+        <input type="hidden" name="redirectTo" value={pathname ?? '/'} />
+        {DEMO_ACCOUNTS.filter((account) => account.email !== current).map((account) => (
+          <button
+            key={account.email}
+            type="submit"
+            name="email"
+            value={account.email}
+            className="block w-full px-2 py-1.5 text-left text-xs hover:bg-canvas hover:text-ink"
+          >
+            {account.label}
+          </button>
+        ))}
+      </form>
+    </details>
   );
-}
-
-/** Labels each option with the roles its groups map to, so the choice is a role choice. */
-function rolesOf(groups: readonly string[]): string {
-  return resolveRoles(groups, parseGroupRoleMap(process.env.ENTRA_GROUP_MAP)).join(', ');
 }

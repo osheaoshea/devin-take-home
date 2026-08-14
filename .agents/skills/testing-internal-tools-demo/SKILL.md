@@ -28,7 +28,8 @@ pnpm build && pnpm start                    # :3000 (pnpm dev also fine)
 so four-eyes and dual approval have a distinct second actor.
 Requires `DEMO_AUTH_ENABLED=true` in `.env`. Wrong password → `/signin?error=rejected` with an inline error.
 Sign out and the demo user switcher are in the sidebar's account block; signing out deletes the
-Postgres session row, and switching deletes it and creates the next account's.
+Postgres session row, and switching deletes it and creates the next account's. The switcher is a
+`details` menu: click the account label, then click another account to switch immediately.
 
 ## Things worth knowing before you write assertions
 
@@ -48,7 +49,8 @@ Postgres session row, and switching deletes it and creates the next account's.
   ("Application error: a server-side exception has occurred") plus a browser console error. Data is
   not leaked, but if a styled 403 has since been added, expect that instead.
 - Role indicator badges live in the sidebar account block (`data-testid="role-indicator"`), and the
-  switcher form is `data-testid="demo-switcher"`; nav links are filtered
+  switcher menu is `data-testid="demo-switcher"` (a `summary` plus one submit button per other
+  account); nav links are filtered
   by permission and the Audit link/Operator panel are admin-only.
 - The `/kyc`, `/refunds`, `/flags` routes are intentional placeholders until specs 01–03, so hub
   cards say "Ships with its own spec" while the nav still links to the placeholder pages.

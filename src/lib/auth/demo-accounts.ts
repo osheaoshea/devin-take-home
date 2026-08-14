@@ -6,6 +6,8 @@ export interface DemoAccount {
   email: string;
   password: string;
   name: string;
+  /** Short handle for the account, used by the demo switcher. */
+  label: string;
   groups: string[];
 }
 
@@ -21,24 +23,28 @@ export const DEMO_ACCOUNTS: DemoAccount[] = [
     email: 'admin@demo.co',
     password: DEMO_PASSWORD,
     name: 'Sarah Bennett',
+    label: 'Admin',
     groups: ['ENTRA-Platform-Admins'],
   },
   {
     email: 'manager1@demo.co',
     password: DEMO_PASSWORD,
     name: 'David Chen',
+    label: 'Manager 1',
     groups: ['ENTRA-KYC-Managers', 'ENTRA-Finance-Managers', 'ENTRA-Engineering'],
   },
   {
     email: 'manager2@demo.co',
     password: DEMO_PASSWORD,
     name: 'Elena Rossi',
+    label: 'Manager 2',
     groups: ['ENTRA-KYC-Managers', 'ENTRA-Finance-Managers', 'ENTRA-Engineering'],
   },
   {
     email: 'viewer@demo.co',
     password: DEMO_PASSWORD,
     name: 'Tom Whitfield',
+    label: 'Viewer',
     groups: ['ENTRA-Internal-Tools-Viewers'],
   },
 ];

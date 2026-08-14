@@ -80,8 +80,8 @@ test('the demo switcher swaps the signed-in account through the real sign-in pat
   await signIn(page, 'admin@demo.co');
 
   const switcher = page.getByTestId('demo-switcher');
-  await switcher.getByLabel('Demo user').selectOption('viewer@demo.co');
-  await switcher.getByRole('button', { name: 'Switch' }).click();
+  await switcher.locator('summary').click();
+  await switcher.locator('button', { hasText: 'Viewer' }).click();
 
   await expect(page).toHaveURL(/\/$/);
   await expect(page.getByTestId('role-indicator')).toContainText('viewer');
