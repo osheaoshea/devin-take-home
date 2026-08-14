@@ -1,6 +1,6 @@
 {
-  "id": "79dec342-4ebd-4dd3-94e7-9803b9a422ed",
-  "prevId": "f4b31f86-800d-43e2-8ef9-d982b3f21e3f",
+  "id": "3ae55eb9-a636-4472-871e-4014de82d0c9",
+  "prevId": "28f983e8-9ebc-4cf4-9d86-d623ad8107ef",
   "version": "7",
   "dialect": "postgresql",
   "tables": {
@@ -613,81 +613,6 @@
       "checkConstraints": {},
       "isRLSEnabled": false
     },
-    "public.refund_approvals": {
-      "name": "refund_approvals",
-      "schema": "",
-      "columns": {
-        "id": {
-          "name": "id",
-          "type": "uuid",
-          "primaryKey": true,
-          "notNull": true,
-          "default": "gen_random_uuid()"
-        },
-        "refund_id": {
-          "name": "refund_id",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "approver_id": {
-          "name": "approver_id",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "approved_at": {
-          "name": "approved_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "now()"
-        }
-      },
-      "indexes": {},
-      "foreignKeys": {
-        "refund_approvals_refund_id_refunds_id_fk": {
-          "name": "refund_approvals_refund_id_refunds_id_fk",
-          "tableFrom": "refund_approvals",
-          "tableTo": "refunds",
-          "columnsFrom": [
-            "refund_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        },
-        "refund_approvals_approver_id_users_id_fk": {
-          "name": "refund_approvals_approver_id_users_id_fk",
-          "tableFrom": "refund_approvals",
-          "tableTo": "users",
-          "columnsFrom": [
-            "approver_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "no action",
-          "onUpdate": "no action"
-        }
-      },
-      "compositePrimaryKeys": {},
-      "uniqueConstraints": {
-        "refund_approvals_unique": {
-          "name": "refund_approvals_unique",
-          "nullsNotDistinct": false,
-          "columns": [
-            "refund_id",
-            "approver_id"
-          ]
-        }
-      },
-      "policies": {},
-      "checkConstraints": {},
-      "isRLSEnabled": false
-    },
     "public.refunds": {
       "name": "refunds",
       "schema": "",
@@ -744,6 +669,18 @@
           "primaryKey": false,
           "notNull": true
         },
+        "decided_by_id": {
+          "name": "decided_by_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "decided_at": {
+          "name": "decided_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
         "provider_refund_id": {
           "name": "provider_refund_id",
           "type": "text",
@@ -789,6 +726,19 @@
           "tableTo": "users",
           "columnsFrom": [
             "requested_by_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "refunds_decided_by_id_users_id_fk": {
+          "name": "refunds_decided_by_id_users_id_fk",
+          "tableFrom": "refunds",
+          "tableTo": "users",
+          "columnsFrom": [
+            "decided_by_id"
           ],
           "columnsTo": [
             "id"
@@ -966,7 +916,6 @@
       "schema": "public",
       "values": [
         "requested",
-        "needs_second_approval",
         "approved",
         "rejected"
       ]
