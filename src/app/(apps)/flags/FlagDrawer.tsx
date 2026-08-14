@@ -168,9 +168,7 @@ function RolloutControl({
   state: FlagState;
   error?: string;
 }) {
-  if (state.kind !== 'percentage') {
-    return <p className="text-xs text-muted">An on/off switch, so it has no rollout percentage.</p>;
-  }
+  if (state.kind !== 'percentage') return null;
 
   const allowed = can(actor, 'flags.write');
   const fieldId = `flag-rollout-${state.environment}-percentage`;

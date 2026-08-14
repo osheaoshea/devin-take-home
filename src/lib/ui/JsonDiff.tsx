@@ -21,10 +21,10 @@ export function JsonDiff({ before, after }: { before: unknown; after: unknown })
   }
 
   return (
-    <table className="w-full border-collapse text-xs">
+    <table className="w-full table-fixed border-collapse text-xs">
       <thead className="text-left text-muted">
         <tr>
-          <th className="border-b border-line py-1 pr-3 font-medium">Field</th>
+          <th className="w-1/4 border-b border-line py-1 pr-3 font-medium">Field</th>
           <th className="border-b border-line py-1 pr-3 font-medium">Before</th>
           <th className="border-b border-line py-1 font-medium">After</th>
         </tr>
@@ -32,11 +32,11 @@ export function JsonDiff({ before, after }: { before: unknown; after: unknown })
       <tbody>
         {changed.map((key) => (
           <tr key={key} className="align-top">
-            <td className="border-b border-line py-1 pr-3 font-mono">{key}</td>
-            <td className="border-b border-line py-1 pr-3 font-mono text-red-700">
+            <td className="break-all border-b border-line py-1 pr-3 font-mono">{key}</td>
+            <td className="break-all border-b border-line py-1 pr-3 font-mono text-red-700">
               {stringify(beforeRecord[key])}
             </td>
-            <td className="border-b border-line py-1 font-mono text-green-700">
+            <td className="break-all border-b border-line py-1 font-mono text-green-700">
               {stringify(afterRecord[key])}
             </td>
           </tr>

@@ -91,6 +91,25 @@ test('the demo switcher swaps the signed-in account through the real sign-in pat
   expect(response?.status()).toBe(403);
 });
 
+test('switching to an account without the page permission lands on a page it can see', async ({
+  page,
+}) => {
+  await signIn(page, 'admin@demo.co');
+  await page.goto('/admin/audit');
+  await expect(page.getByRole('heading', { name: 'Audit log' })).toBeVisible();
+
+  const switcher = page.getByTestId('demo-switcher');
+  await switcher.locator('summary').click();
+  await switcher.locator('button', { hasText: 'Manager 1' }).click();
+
+  // The manager holds no audit.read, so the switch cannot return to /admin/audit, and it must
+  // not drop the session either.
+  await expect(page).not.toHaveURL(/\/admin\/audit/);
+  await expect(page).not.toHaveURL(/\/signin/);
+  await expect(page.getByTestId('role-indicator')).toContainText('kyc_manager');
+  await expect(page.getByTestId('forbidden')).toHaveCount(0);
+});
+
 test('the demo switcher is absent when signed out', async ({ page }) => {
   await page.goto('/signin');
   await expect(page.getByTestId('demo-switcher')).toHaveCount(0);

@@ -113,7 +113,7 @@ export default async function AuditPage({
           </div>
           <div>
             <h3 className="mb-2 font-medium">Entity</h3>
-            <p className="font-mono text-xs">
+            <p className="break-all font-mono text-xs">
               {selected.entityType} / {selected.entityId}
             </p>
           </div>
