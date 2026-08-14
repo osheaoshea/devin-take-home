@@ -19,8 +19,9 @@ export class StaleStateError extends Error {
   constructor(
     readonly entityId: string,
     readonly expected: string,
+    entityLabel = 'entity',
   ) {
-    super(`kyc case ${entityId} is no longer in state ${expected}`);
+    super(`${entityLabel} ${entityId} is no longer in state ${expected}`);
     this.name = 'StaleStateError';
   }
 }
@@ -42,12 +43,13 @@ export async function compareAndSwapUpdate<T extends StatefulTable>(
   entityId: string,
   from: string,
   values: PgUpdateSetSource<T>,
+  entityLabel?: string,
 ): Promise<T['$inferSelect']> {
   const [updated] = await tx
     .update(table)
     .set({ ...values, updatedAt: now() } as PgUpdateSetSource<T>)
     .where(and(eq(table.id, entityId), eq(table.state, from)))
     .returning();
-  if (updated === undefined) throw new StaleStateError(entityId, from);
+  if (updated === undefined) throw new StaleStateError(entityId, from, entityLabel);
   return updated;
 }

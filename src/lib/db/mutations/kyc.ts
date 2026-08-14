@@ -16,7 +16,7 @@ export function kycMutations(tx: DrizzleTx): KycMutations {
     caseId: string,
     from: KycCase['state'],
     values: Partial<KycCase>,
-  ): Promise<KycCase> => compareAndSwapUpdate(tx, kycCases, caseId, from, values);
+  ): Promise<KycCase> => compareAndSwapUpdate(tx, kycCases, caseId, from, values, 'kyc case');
 
   return {
     claimKycCase: (caseId, assigneeId, from) =>
