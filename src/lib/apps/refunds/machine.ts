@@ -52,24 +52,28 @@ export const refundMachine: Machine<Refund, RefundState> = defineMachine<Refund,
   persist: async ({ tx, entity, from, to, context }) => {
     const { actorId } = transitionContextSchema.parse(context);
 
-    // Money leaves the platform on the way into `approved` only, inside the same transaction as
-    // the state change: a provider refund with no audit trail cannot exist.
-    const issued =
-      to === 'approved'
-        ? await paymentsProvider().issueRefund({
-            paymentId: entity.paymentId,
-            amountPence: entity.amountPence,
-            currency: entity.currency,
-          })
-        : undefined;
-
-    return tx.decideRefund({
+    // The compare-and-swap runs first, so a concurrent decision that loses it never reaches the
+    // provider, and the refund id keys the provider call, so a retry cannot issue twice. A crash
+    // between provider success and commit still loses the provider refund id; production would
+    // record an outbox/intent row before calling out.
+    const decided = await tx.decideRefund({
       refundId: entity.id,
       from,
       to,
       decidedById: actorId,
       decidedAt: now(),
-      providerRefundId: issued?.providerRefundId,
+    });
+    if (to !== 'approved') return decided;
+
+    const issued = await paymentsProvider().issueRefund({
+      idempotencyKey: entity.id,
+      paymentId: entity.paymentId,
+      amountPence: entity.amountPence,
+      currency: entity.currency,
+    });
+    return tx.recordProviderRefund({
+      refundId: entity.id,
+      providerRefundId: issued.providerRefundId,
     });
   },
   action: (to) => `refund.${to}`,

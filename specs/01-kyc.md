@@ -54,7 +54,8 @@ transitions keyed `from->to`; `persist` calls the mutation with `from` so the wr
    `escalatedById`. Its guard tests come before the guard.
 2. SLA countdowns and due-at maths read the clock through `now()` from `lib/time`, so the seed and tests can
    pin it.
-3. `/api/webhooks/kyc` is public (no permission check): zod-validate with `onfidoCheckPayloadSchema`, archive
+3. `/api/webhooks/kyc` holds no session (the provider cannot sign in): the `x-webhook-secret` shared
+   secret (`KYC_WEBHOOK_SECRET`) is the gate, then zod-validate with `onfidoCheckPayloadSchema`, archive
    the payload to `kyc_events`, then create the case.
 4. Actions are RBAC-gated buttons plus the per-case audit trail; `ApprovalFlow` belongs to refunds.
 5. The app is built from `lib/ui` primitives and registers itself by flipping its `APP_REGISTRY` entry

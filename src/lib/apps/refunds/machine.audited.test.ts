@@ -2,6 +2,7 @@ import { afterAll, beforeEach, describe, expect, it } from 'vitest';
 import { readAuditLog } from '@/lib/audit';
 import { closeDb } from '@/lib/db/client';
 import { findRefundRowById } from '@/lib/db/queries';
+import { MockStripeProvider, paymentsProvider } from '@/lib/providers';
 import type { Actor } from '@/lib/rbac';
 import { createDemoUser, insertRefund, resetDatabase } from '@/test/db';
 import { refundMachine } from './machine';
@@ -29,6 +30,12 @@ const rowFor = async (actor: Actor, refundId: string) => {
 
 const seedRequest = (amountPence: number): Promise<string> =>
   insertRefund({ requestedById: agent.id, amountPence });
+
+const providerIssueCount = (): number => {
+  const provider = paymentsProvider();
+  if (!(provider instanceof MockStripeProvider)) throw new Error('expected the mock provider');
+  return provider.issuedRefunds().length;
+};
 
 describe('approving a refund', () => {
   it('issues with the provider, records the decider and audits it in one transaction', async () => {
@@ -95,6 +102,36 @@ describe('a refusal', () => {
       decidedAt: null,
     });
     expect(await readAuditLog(admin, { entityId: refundId })).toHaveLength(0);
+  });
+
+  it('never reaches the provider when the compare-and-swap loses to a concurrent decision', async () => {
+    const refundId = await seedRequest(780_000);
+    const staleRead = await rowFor(finance, refundId);
+    await refundMachine.transition({
+      actor: finance,
+      entity: staleRead,
+      to: 'rejected',
+      context: { actorId: finance.id },
+    });
+
+    const issuedBefore = providerIssueCount();
+    await expect(
+      refundMachine.transition({
+        actor: finance,
+        entity: staleRead,
+        to: 'approved',
+        context: { actorId: finance.id },
+      }),
+    ).rejects.toMatchObject({ reason: 'stale_state' });
+
+    expect(providerIssueCount()).toBe(issuedBefore);
+    expect(await rowFor(admin, refundId)).toMatchObject({
+      state: 'rejected',
+      providerRefundId: null,
+    });
+    expect(
+      (await readAuditLog(admin, { entityId: refundId })).map((entry) => entry.action),
+    ).toEqual(['refund.rejected']);
   });
 
   it('refuses a second decision on an already decided refund', async () => {

@@ -27,7 +27,6 @@ jobs:
       # Auth.js refuses to serve an untrusted Host in production builds.
       AUTH_URL: http://localhost:3000
       DEMO_AUTH_ENABLED: 'true'
-      PROVIDER_MODE: mock
       KYC_WEBHOOK_SECRET: ci-webhook-secret
     steps:
       - uses: actions/checkout@v4

@@ -28,7 +28,7 @@ Spec 00 ships the platform and the hub. The three apps ship in specs 01–03; th
 ### Auth & identity
 
 1. As an engineer at the client, I want to sign in with my Microsoft (Entra ID) account in production, so that I don't manage another password.
-2. As a demo operator, I want to sign in as one of eight pre-seeded demo accounts in dev/demo, so that I can show every role's view without an Entra tenant.
+2. As a demo operator, I want to sign in as one of four pre-seeded demo accounts in dev/demo, so that I can show every role's view without an Entra tenant.
 3. As a demo operator, I want the demo accounts to carry fake Entra-style group claims, so that the _real_ group→role mapping code path runs during the demo.
 4. As a security reviewer, I want roles derived only from IdP groups, so that no in-app action can grant a user new powers.
 5. As a security reviewer, I want the roles a user held to be snapshotted on their user row at sign-in, so that audit entries record the roles the actor held at the time of the action.
@@ -78,7 +78,7 @@ Spec 00 ships the platform and the hub. The three apps ship in specs 01–03; th
 
 ### Data, seed & demo
 
-37. As a demo operator, I want `pnpm db:seed` to create realistic demo data (~40 KYC cases across states, ~30 refunds, ~12 flags) and the eight demo logins, so that the demo has depth on first run.
+37. As a demo operator, I want `pnpm db:seed` to create realistic demo data (~40 KYC cases across states, ~30 refunds, ~12 flags) and the four demo logins, so that the demo has depth on first run.
 38. As a developer, I want `docker compose up` + `pnpm db:migrate` + `pnpm db:seed` to be the whole local setup, so that onboarding is minutes.
 39. As a developer, I want environments to differ **only** by `DATABASE_URL`, so that Neon in production needs no code change.
 40. As a reviewer, I want Drizzle to own the schema with generated SQL migrations committed to git, so that schema history is reviewable and there is exactly one migration tool.
@@ -160,7 +160,7 @@ machine.transition(request): Promise<E>   // through audited(); throws Transitio
 
 `lib/auth` — Auth.js (NextAuth) with the Drizzle adapter and `session: { strategy: 'database' }`; Entra ID OIDC is the only registered provider, and it is registered only when its three env vars are set. The demo IdP is **not** a provider: `signInAsDemoUser(email, password)` validates a mock account against `users.password_hash`, re-resolves its fake group claims through `resolveRoles`, inserts a `sessions` row and sets the session cookie — so demo and production share one session mechanism. It is gated by `demoAuthEnabled()` (`DEMO_AUTH_ENABLED=true` **and** a locally served app, unless `DEMO_AUTH_ALLOW_REMOTE_HOST=true`) and throttled per client and account. The Entra `signIn` event resolves groups → roles via `lib/rbac` and persists the snapshot on `users.roles`. Exposes `getActor()` for server components/actions and `requireActor()` which redirects when signed out. MFA step-up: `StepUpProvider` interface + `NoopStepUpProvider`, called at the documented hook point.
 
-`lib/providers` — `KycProvider` and `PaymentsProvider` interfaces plus mock implementations that persist/log; a config flag (`PROVIDER_MODE`) selects the implementation. Spec 00 defines the interfaces and mocks only; the apps consume them.
+`lib/providers` — `KycProvider` and `PaymentsProvider` interfaces plus mock implementations that persist/log, exposed through factory functions (`kycProvider()`, `paymentsProvider()`) behind which a real implementation could be swapped. Spec 00 defines the interfaces and mocks only; the apps consume them.
 
 `lib/ui` — `PageShell`, `DataTable`, `Form`, `ApprovalFlow`, `DetailDrawer`, `StatusBadge`. Server components by default; only `Form`, `DetailDrawer` and the `DataTable` control bar are client components. `DataTable` reads sort/filter/page from `searchParams` so state is URL-shareable and server-rendered.
 
@@ -184,7 +184,7 @@ The nav (`PageShell`) and the hub cards both render from `APP_REGISTRY`, so an a
 
 ### Schema (Drizzle owns it; one migration history)
 
-Tables from technical context §7 — spec 00 creates all of them, in per-app migrations, so specs 01–03 add no migrations for their core entities: `users` (with `roles` snapshot, `groups`, `password_hash`), Auth.js `accounts`/`sessions`/`verification_tokens`, `audit_log` (`drizzle/0000`), `kyc_cases`, `kyc_events` (`0002`), `refunds`, `refund_approvals` (`0003`), `flags`, `flag_states` (`0004`). All FKs explicit; every state column is a Postgres enum (`kyc_case_state`, `refund_state`, `role`, `environment`, `rollout_kind`). `audit_log` is append-only **in the database**: `drizzle/0001_append_only_audit_log.sql` ships a trigger that raises on any `UPDATE` or `DELETE`. Indexes on `(entity_type, entity_id)`, `actor_id` and `created_at`.
+Tables from technical context §7 — spec 00 creates all of them, in per-app migrations, so specs 01–03 add no migrations for their core entities: `users` (with `roles` snapshot, `groups`, `password_hash`), Auth.js `accounts`/`sessions`/`verification_tokens`, `audit_log` (`drizzle/0000`), `kyc_cases`, `kyc_events` (`0002`), `refunds` (`0003`), `flags`, `flag_states` (`0004`). All FKs explicit; every state column is a Postgres enum (`kyc_case_state`, `refund_state`, `role`, `environment`, `rollout_kind`). `audit_log` is append-only **in the database**: `drizzle/0001_append_only_audit_log.sql` ships a trigger that raises on any `UPDATE` or `DELETE`. Indexes on `(entity_type, entity_id)`, `actor_id` and `created_at`.
 
 ### Access control at two layers
 
@@ -196,11 +196,11 @@ Only `viewer` reads across every tool; each working role reads only the app it w
 ### Tooling decisions (empty repo)
 
 - pnpm, Node LTS, Next.js App Router, TypeScript `strict` with `noUncheckedIndexedAccess`.
-- ESLint flat config: `next/core-web-vitals`, `@typescript-eslint` (type-aware), `eslint-plugin-import` ordering, plus a `no-restricted-imports`/`no-restricted-syntax` pair that bans importing the raw Drizzle client outside `lib/db` and `lib/audit`, enforcing convention 1.
+- ESLint flat config: `next/core-web-vitals`, `@typescript-eslint` (type-aware), `eslint-plugin-import` ordering, plus a `no-restricted-imports` rule (exact `paths` entry and a `patterns` entry for relative specifiers) that bans importing the raw Drizzle client outside `lib/db`, `lib/audit` and `lib/auth`, enforcing convention 1.
 - Prettier (with the Tailwind class-sorting plugin) is the only formatter; ESLint does not format.
 - Scripts: `dev`, `build`, `start`, `typecheck`, `lint`, `format`, `format:check`, `test`, `test:e2e`, `db:generate`, `db:migrate`, `db:seed`, `db:reset`.
 - CI (GitHub Actions) on every PR: install → `typecheck` → `lint` → `format:check` → `test` → `build`. Playwright smokes run against a Postgres service container.
-- Local Postgres via `docker-compose.yml` (single service, named volume). `.env.example` documents `DATABASE_URL`, `AUTH_SECRET`, `AUTH_MICROSOFT_ENTRA_ID_*`, `ENTRA_GROUP_MAP`, `DEMO_AUTH_ENABLED`, `PROVIDER_MODE`.
+- Local Postgres via `docker-compose.yml` (single service, named volume). `.env.example` documents `DATABASE_URL`, `AUTH_SECRET`, `AUTH_MICROSOFT_ENTRA_ID_*`, `ENTRA_GROUP_MAP`, `DEMO_AUTH_ENABLED`.
 
 ## Testing Decisions
 

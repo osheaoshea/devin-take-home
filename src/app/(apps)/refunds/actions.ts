@@ -4,8 +4,8 @@ import { revalidatePath } from 'next/cache';
 import { notFound, redirect } from 'next/navigation';
 import { z } from 'zod';
 import { refundMachine, REFUND_STATES } from '@/lib/apps/refunds';
-import { requireActor } from '@/lib/auth';
-import { findRefundRowById } from '@/lib/db/queries';
+import { requireActor, stepUp } from '@/lib/auth';
+import { findRefundById } from '@/lib/db/queries';
 import { TransitionRefusedError } from '@/lib/workflow';
 
 /** The action the button was rendered for, bound server-side rather than posted as hidden fields. */
@@ -26,8 +26,9 @@ export type RefundTransitionTarget = z.infer<typeof targetSchema>;
 export async function transitionRefundAction(rawTarget: RefundTransitionTarget): Promise<void> {
   const actor = await requireActor();
   const target = targetSchema.parse(rawTarget);
-  const refund = await findRefundRowById(actor, target.refundId);
+  const refund = await findRefundById(actor, target.refundId);
   if (refund === undefined) notFound();
+  if (target.to === 'approved') await stepUp.requireStepUp(actor, 'refund.approve');
 
   let refusal: string | undefined;
   try {
