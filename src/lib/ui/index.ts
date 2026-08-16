@@ -1,5 +1,3 @@
-export { ApprovalFlow } from './ApprovalFlow';
-export type { ApprovalAction, ApprovalStep } from './ApprovalFlow';
 export { DataTable } from './DataTable';
 export type { Column, DataTableProps } from './DataTable';
 export { DetailDrawer } from './DetailDrawer';

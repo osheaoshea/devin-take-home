@@ -68,7 +68,7 @@ An app is a set of **slice files** plus one registry entry. Foundation logic sta
 - One `AppDescriptor` in `APP_REGISTRY` (`lib/apps/registry.ts`), which is what puts the app in the nav
   and on the hub. Flip `available` to `true` when the app ships.
 - Pages under `src/app/(apps)/<app>/`, built from `lib/ui` primitives (`PageShell`, `DataTable`, `Form`,
-  `DetailDrawer`, `StatusBadge`, `ApprovalFlow`, `JsonDiff`). Extend `lib/ui` when a primitive is missing.
+  `DetailDrawer`, `StatusBadge`, `JsonDiff`). Extend `lib/ui` when a primitive is missing.
 
 ## Code
 

@@ -10,7 +10,7 @@ import {
   killFlag,
   setRolloutPercentage,
 } from '@/lib/apps/flags';
-import { requireActor } from '@/lib/auth';
+import { requireActor, stepUp } from '@/lib/auth';
 import { findFlagStateById } from '@/lib/db/queries';
 import { AuthorizationError, type Permission } from '@/lib/rbac';
 import { TransitionRefusedError } from '@/lib/workflow';
@@ -83,6 +83,7 @@ export async function setFlagRolloutAction(
 export async function killFlagAction(rawTarget: FlagKillTarget): Promise<void> {
   const actor = await requireActor();
   const target = killTargetSchema.parse(rawTarget);
+  await stepUp.requireStepUp(actor, 'flags.kill_switch');
 
   finish(
     target.flagId,

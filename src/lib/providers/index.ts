@@ -10,7 +10,7 @@ export { MockStripeProvider } from './payments';
 const mockKyc = new MockKycProvider();
 const mockPayments = new MockStripeProvider();
 
-/** PROVIDER_MODE selects the implementation; only `mock` is built (see out of scope). */
+/** Only the mock implementations are built (see out of scope); a real one would swap in here. */
 export function kycProvider(): KycProvider {
   return mockKyc;
 }

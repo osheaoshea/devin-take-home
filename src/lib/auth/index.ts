@@ -5,21 +5,19 @@ import { redirect } from 'next/navigation';
 import { getDb } from '@/lib/db/client';
 import { sessions, users } from '@/lib/db/schema';
 import { AuthorizationError, parseGroupRoleMap, resolveRoles, type Actor } from '@/lib/rbac';
-import { auth } from './config';
+import { auth, SESSION_MAX_AGE_SECONDS } from './config';
 import { secureCookies, sessionCookieName } from './cookies';
 import { DEMO_ACCOUNTS, demoAuthEnabled } from './demo-accounts';
 import { verifyPassword } from './password';
 import { demoSignInThrottle } from './throttle';
 
-export { auth, handlers, signOut } from './config';
+export { auth, handlers, signOut, SESSION_MAX_AGE_SECONDS } from './config';
 export { secureCookies, sessionCookieName } from './cookies';
 export { DEMO_ACCOUNTS, DEMO_PASSWORD, demoAuthEnabled } from './demo-accounts';
 export { hashPassword, verifyPassword } from './password';
 export { stepUp, NoopStepUpProvider } from './step-up';
 export { AttemptThrottle, TooManyAttemptsError, DEMO_SIGN_IN_POLICY } from './throttle';
 export type { StepUpProvider } from './step-up';
-
-const SESSION_MAX_AGE_SECONDS = 60 * 60 * 8;
 
 /** The signed-in actor, or undefined when signed out. */
 export async function getActor(): Promise<Actor | undefined> {

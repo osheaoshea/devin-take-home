@@ -68,7 +68,7 @@ resolved from group claims rather than impersonated.
 | `src/lib/audit`     | `audited()` — mutation and audit entry in one transaction — and the audit reader             |
 | `src/lib/workflow`  | Generic transition machine plus guards (four-eyes, thresholds, permissions)                  |
 | `src/lib/db`        | Drizzle schema, client, accessors, mutations, migrations, seed                               |
-| `src/lib/ui`        | `PageShell`, `DataTable`, `Form`, `DetailDrawer`, `ApprovalFlow`, `StatusBadge`, `JsonDiff`  |
+| `src/lib/ui`        | `PageShell`, `DataTable`, `Form`, `DetailDrawer`, `StatusBadge`, `JsonDiff`                  |
 | `src/lib/providers` | `KycProvider` / `PaymentsProvider` interfaces with mock implementations                      |
 
 Access control is enforced twice: at the route or action, and again in the query accessors, so a
@@ -101,6 +101,11 @@ The audit log is append-only in the database, not only by convention: a trigger 
 webhook would be), and `MockStripeProvider` records refunds in memory and returns provider refund
 ids. Swapping in the real clients means implementing the interface — no call sites change. Step-up
 MFA is a documented `StepUpProvider` interface with a no-op implementation.
+
+The append-only audit trigger covers `UPDATE` and `DELETE` but not `TRUNCATE` or an owner disabling
+the trigger; production would connect as a non-owner role. `/api/flags/[env]` is deliberately
+unauthenticated as the public read side of the flags service and would be rate-limited and scoped in
+production.
 
 ## Out of scope (deliberately)
 

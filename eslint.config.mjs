@@ -75,6 +75,14 @@ export default tseslint.config(
                 'Do not use the Drizzle client directly. Mutate through audited() in @/lib/audit and read through accessors in @/lib/db.',
             },
           ],
+          // Catches relative specifiers ('../db/client') that evade the exact path above.
+          patterns: [
+            {
+              group: ['**/db/client'],
+              message:
+                'Do not use the Drizzle client directly. Mutate through audited() in @/lib/audit and read through accessors in @/lib/db.',
+            },
+          ],
         },
       ],
     },

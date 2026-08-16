@@ -6,6 +6,9 @@ import { getDb } from '@/lib/db/client';
 import { accounts, sessions, users, verificationTokens } from '@/lib/db/schema';
 import { parseGroupRoleMap, resolveRoles } from '@/lib/rbac';
 
+/** One session lifetime for both sign-in paths: demo rows and the Auth.js database strategy. */
+export const SESSION_MAX_AGE_SECONDS = 60 * 60 * 8;
+
 export function authAdapter() {
   return DrizzleAdapter(getDb(), {
     usersTable: users,
@@ -38,7 +41,7 @@ function entraProviders(): NextAuthConfig['providers'] {
 
 export const authConfig: NextAuthConfig = {
   adapter: authAdapter(),
-  session: { strategy: 'database' },
+  session: { strategy: 'database', maxAge: SESSION_MAX_AGE_SECONDS },
   pages: { signIn: '/signin' },
   providers: entraProviders(),
   events: {
